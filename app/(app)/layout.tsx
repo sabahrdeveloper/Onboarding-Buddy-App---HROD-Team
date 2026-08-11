@@ -1,0 +1,195 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import {
+  getAuthUser,
+  getEmployee,
+  getEmployeeAssessments,
+  getMilestoneAssessments,
+  getProfile,
+  getTaskStatuses,
+  getTasks,
+} from "@/lib/data/queries";
+import { combineRole, findSbuAssignments, type SbuHrAssignment } from "@/lib/sbu-matching";
+import { buildCompanyWideContactLists } from "@/lib/contact-lists";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { OverlayProvider } from "@/components/journey/OverlayProvider";
+import type {
+  AssessmentKey,
+  AssessmentTemplate,
+  Contact,
+  MilestoneAssessmentTemplate,
+  MilestoneIdentity,
+  PhaseKey,
+  Task,
+} from "@/lib/types";
+
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await getAuthUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const [
+    { data: profile },
+    { data: employee },
+    { data: rawTasks },
+    { data: statuses },
+    { data: contactsData },
+    { data: templatesData },
+    { data: assessmentsData },
+    { data: milestoneTemplatesData },
+    { data: milestoneAssessmentsData },
+    { data: sbuAssignmentsData },
+    { data: isManagerData },
+  ] = await Promise.all([
+    getProfile(),
+    getEmployee(),
+    getTasks(),
+    getTaskStatuses(),
+    supabase.from("contacts").select("*").order("key"),
+    supabase.from("assessment_templates").select("*"),
+    getEmployeeAssessments(),
+    supabase.from("milestone_assessment_templates").select("*"),
+    getMilestoneAssessments(),
+    supabase.from("sbu_hr_assignments").select("*"),
+    supabase.rpc("is_manager"),
+  ]);
+
+  const statusByTaskId = new Map((statuses ?? []).map((s) => [s.task_id, s]));
+  const tasks: Task[] = (rawTasks ?? []).map((t) => ({
+    id: t.id,
+    workNumber: t.work_number,
+    phase: t.phase as PhaseKey,
+    title: t.title,
+    responsibleRole: t.responsible_role,
+    responsibleKey: t.responsible_key,
+    responsibleKeys: t.responsible_keys?.length ? t.responsible_keys : [t.responsible_key],
+    timeline: t.timeline,
+    whyText: t.why_text,
+    howToSteps: t.how_to_steps,
+    confirmQuestion: t.confirm_question,
+    done: statusByTaskId.get(t.id)?.done ?? false,
+    doneDate: statusByTaskId.get(t.id)?.done_date ?? null,
+  }));
+
+  const genericContacts: Contact[] = (contactsData ?? []).map((c) => ({
+    key: c.key,
+    name: c.name,
+    role: c.role,
+    phone: c.phone,
+    icon: c.icon,
+  }));
+
+  // SBU-specific HRBP/IT Head (round 3 — dynamic per-SBU assignment): match the
+  // employee's PeopleDesk-sourced SBU string against the cluster reference data.
+  // Falls back to the generic hr/it contact below when no row matches, or when
+  // the matched row's person for that specific field is empty (e.g. HRBP "Vacant").
+  const sbuAssignments: SbuHrAssignment[] = (sbuAssignmentsData ?? []).map((r) => ({
+    cluster: r.cluster,
+    sbuDisplayName: r.sbu_display_name,
+    sbuAliases: r.sbu_aliases,
+    collisionLabel: r.collision_label,
+    hrClusterHead: { name: r.hr_cluster_head_name, phone: r.hr_cluster_head_phone, email: r.hr_cluster_head_email },
+    hrbp: { name: r.hrbp_name, phone: r.hrbp_phone, email: r.hrbp_email },
+    hrSs: { name: r.hr_ss_name, phone: r.hr_ss_phone, email: r.hr_ss_email },
+    itHead: { name: r.it_head_name, phone: r.it_head_phone, email: r.it_head_email },
+  }));
+  const sbuMatches = findSbuAssignments(employee?.sbu, sbuAssignments);
+  const dynamicHrbp = combineRole(sbuMatches, (m) => m.hrbp);
+  const dynamicItHead = combineRole(sbuMatches, (m) => m.itHead);
+
+  // Company-wide contact list popups (item 2) — every distinct HR/IT person
+  // across all SBUs, not scoped to this employee.
+  const { hr: hrContactList, it: itContactList } = buildCompanyWideContactLists(sbuAssignments);
+
+  // Manager/Buddy contact cards use the employee's own assigned person (item 2/4 —
+  // single source of truth) when that data has been filled in, falling back to the
+  // generic org-wide directory entry otherwise (e.g. a freshly auto-created account).
+  const contacts: Contact[] = genericContacts.map((c) => {
+    if (c.key === "manager" && employee?.reporting_manager) {
+      return {
+        ...c,
+        name: employee.reporting_manager,
+        phone: employee.reporting_manager_phone || c.phone,
+        email: employee.reporting_manager_email,
+      };
+    }
+    if (c.key === "buddy" && employee?.buddy) {
+      return {
+        ...c,
+        name: employee.buddy,
+        phone: employee.buddy_phone || c.phone,
+        email: employee.buddy_email,
+      };
+    }
+    if (c.key === "hr" && dynamicHrbp?.name) {
+      return { ...c, name: dynamicHrbp.name, phone: dynamicHrbp.phone || c.phone, email: dynamicHrbp.email };
+    }
+    if (c.key === "it" && dynamicItHead?.name) {
+      return { ...c, name: dynamicItHead.name, phone: dynamicItHead.phone || c.phone, email: dynamicItHead.email };
+    }
+    return c;
+  });
+
+  // "dept"-tagged tasks now point at the employee's real Line Manager rather
+  // than a generic Department Head placeholder — reuses the manager contact
+  // resolved above, keeping the "dept" role label for context.
+  const managerContact = contacts.find((c) => c.key === "manager");
+  const contactsWithDept = managerContact
+    ? contacts.map((c) => (c.key === "dept" ? { ...managerContact, key: "dept", role: c.role } : c))
+    : contacts;
+
+  const assessmentTemplates: AssessmentTemplate[] = (templatesData ?? []).map((t) => ({
+    key: t.assessment_key as AssessmentKey,
+    title: t.title,
+    items: t.items,
+    statusOptions: t.status_options,
+  }));
+
+  const submittedAssessments = (assessmentsData ?? []).map((a) => ({
+    assessmentKey: a.assessment_key as AssessmentKey,
+    submittedAt: a.submitted_at,
+  }));
+
+  const milestoneAssessmentTemplates: MilestoneAssessmentTemplate[] = (milestoneTemplatesData ?? []).map((t) => ({
+    milestone: t.milestone as PhaseKey,
+    questions: t.questions,
+  }));
+
+  const submittedMilestoneKeys = new Set(
+    (milestoneAssessmentsData ?? []).filter((m) => m.submitted_at).map((m) => m.milestone as PhaseKey),
+  );
+
+  const identityDefaults: MilestoneIdentity = {
+    employeeId: profile?.enroll_number ?? "",
+    fullName: profile?.full_name ?? "",
+    email: employee?.email ?? "",
+    designation: employee?.designation ?? "",
+    team: employee?.team ?? "",
+    section: employee?.section ?? "",
+    sbu: employee?.sbu ?? "",
+  };
+
+  return (
+    <OverlayProvider
+      tasks={tasks}
+      contacts={contactsWithDept}
+      assessmentTemplates={assessmentTemplates}
+      submittedAssessments={submittedAssessments}
+      milestoneAssessmentTemplates={milestoneAssessmentTemplates}
+      submittedMilestoneKeys={submittedMilestoneKeys}
+      identityDefaults={identityDefaults}
+      hrContactList={hrContactList}
+      itContactList={itContactList}
+    >
+      <div className="flex min-h-full flex-col">
+        <div className="flex-1 px-4 pb-5 pt-1">{children}</div>
+        <BottomNav showTeamTab={Boolean(isManagerData)} />
+      </div>
+    </OverlayProvider>
+  );
+}

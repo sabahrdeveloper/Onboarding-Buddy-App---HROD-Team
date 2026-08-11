@@ -1,0 +1,10 @@
+{
+  "name": "onboardingbuddy-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local MCP connector for OnboardingBuddy reports (read-only).",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}

@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  /* PeopleDesk tokens — exact values from the OnboardingBuddy offline prototype */
+  --green: #2ca24d;
+  --green-dark: #0c7a35;
+  --green-light: #eaf7ed;
+  --blue: #3b82f6;
+  --blue-dark: #2563eb;
+  --blue-light: #eef5ff;
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --line: #e6e8eb;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --warn-bg: #fff4dd;
+  --warn-tx: #d48806;
+  --ok-bg: #eaf8ee;
+  --ok-tx: #1b8f4d;
+  --info-bg: #eef5ff;
+  --info-tx: #2563eb;
+  --err-bg: #fdecec;
+  --err-tx: #dc2626;
+
+  --sh-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --sh-float: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --sh-modal: 0 24px 64px rgba(0, 0, 0, 0.2);
+}
+
+@theme inline {
+  --color-green: var(--green);
+  --color-green-dark: var(--green-dark);
+  --color-green-light: var(--green-light);
+  --color-blue: var(--blue);
+  --color-blue-dark: var(--blue-dark);
+  --color-blue-light: var(--blue-light);
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-tx: var(--warn-tx);
+  --color-ok-bg: var(--ok-bg);
+  --color-ok-tx: var(--ok-tx);
+  --color-info-bg: var(--info-bg);
+  --color-info-tx: var(--info-tx);
+  --color-err-bg: var(--err-bg);
+  --color-err-tx: var(--err-tx);
+
+  --shadow-card: var(--sh-card);
+  --shadow-float: var(--sh-float);
+  --shadow-modal: var(--sh-modal);
+
+  --radius-chip: 16px;
+  --radius-button: 14px;
+  --radius-card: 18px;
+  --radius-modal: 28px;
+  --radius-input: 14px;
+
+  --font-en: var(--font-manrope), var(--font-hind-siliguri), system-ui, sans-serif;
+  --font-bn: var(--font-hind-siliguri), var(--font-manrope), system-ui, sans-serif;
+
+  --animate-floaty: floaty 2.6s ease-in-out infinite;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-en);
+}

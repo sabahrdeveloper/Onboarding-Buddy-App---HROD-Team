@@ -1,0 +1,66 @@
+{
+  "colors": {
+    "primaryGreen": "#2CA24D",
+    "primaryDark": "#0C7A35",
+    "primaryLight": "#EAF7ED",
+    "pageBackground": "#F5F6F8",
+    "cardBackground": "#FFFFFF",
+    "border": "#E6E8EB",
+    "textPrimary": "#1F2937",
+    "textSecondary": "#6B7280",
+    "success": "#2BA84A",
+    "warning": "#E9A93B",
+    "error": "#E5484D",
+    "info": "#3B82F6"
+  },
+  "status": {
+    "pending": {
+      "background": "#FFF4DD",
+      "text": "#D48806"
+    },
+    "approved": {
+      "background": "#EAF8EE",
+      "text": "#1B8F4D"
+    },
+    "completed": {
+      "background": "#EEF5FF",
+      "text": "#2563EB"
+    },
+    "rejected": {
+      "background": "#FDECEC",
+      "text": "#DC2626"
+    }
+  },
+  "font": {
+    "primary": "Manrope",
+    "fallback": [
+      "Inter",
+      "Roboto",
+      "system-ui",
+      "sans-serif"
+    ]
+  },
+  "spacing": [
+    4,
+    8,
+    12,
+    16,
+    20,
+    24,
+    32,
+    40,
+    48
+  ],
+  "radius": {
+    "chips": 16,
+    "buttons": 14,
+    "cards": 18,
+    "modals": 28,
+    "inputs": 14
+  },
+  "shadow": {
+    "cards": "0 2px 8px rgba(0,0,0,.06)",
+    "floating": "0 8px 24px rgba(0,0,0,.12)",
+    "modal": "0 24px 64px rgba(0,0,0,.20)"
+  }
+}

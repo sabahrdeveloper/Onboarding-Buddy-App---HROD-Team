@@ -1,0 +1,111 @@
+<!-- PeopleDesk Movement Request Starter Template -->
+<main class="pd-screen">
+  <header class="app-bar">
+    <button aria-label="Back">‹</button>
+    <h1>Movement Request</h1>
+  </header>
+
+  <div class="progress">
+    <span style="width: 66%"></span>
+  </div>
+
+  <section class="assistant-card">
+    <strong>PeopleBuddy</strong>
+    <p>ভালো হচ্ছে! এবার আপনার Movement-এর সময় ও গন্তব্য লিখুন।</p>
+  </section>
+
+  <form class="form-card">
+    <label>
+      Movement Date
+      <input type="date" />
+    </label>
+
+    <label>
+      Movement Time
+      <input type="time" />
+    </label>
+
+    <label>
+      Destination
+      <input type="text" placeholder="যেখানে যাবেন" />
+    </label>
+
+    <label>
+      Purpose
+      <textarea placeholder="Movement-এর কারণ লিখুন"></textarea>
+    </label>
+
+    <button type="submit">Submit Request</button>
+  </form>
+</main>
+
+<style>
+.pd-screen {
+  min-height: 100vh;
+  background: #F5F6F8;
+  padding: 16px;
+  font-family: Manrope, Inter, Roboto, sans-serif;
+}
+.app-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.app-bar button {
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 14px;
+  background: #FFFFFF;
+}
+.app-bar h1 {
+  margin: 0;
+  font-size: 20px;
+}
+.progress {
+  height: 8px;
+  background: #E6E8EB;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.progress span {
+  display: block;
+  height: 100%;
+  background: #2CA24D;
+}
+.assistant-card,
+.form-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1px solid #E6E8EB;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+label {
+  display: block;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #1F2937;
+}
+input,
+textarea {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-bottom: 1px solid #E6E8EB;
+  font: 400 14px/1.5 Manrope, Inter, Roboto, sans-serif;
+  background: transparent;
+}
+button[type="submit"] {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 14px;
+  background: #2CA24D;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+</style>

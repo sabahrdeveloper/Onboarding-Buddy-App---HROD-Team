@@ -1,0 +1,61 @@
+<!-- PeopleDesk Dashboard Starter Template -->
+<main class="pd-screen">
+  <section class="welcome">
+    <p>স্বাগতম</p>
+    <h1>আজ আপনার HR কাজগুলো সহজেই সম্পন্ন করুন</h1>
+  </section>
+
+  <section class="assistant-card">
+    <strong>PeopleBuddy</strong>
+    <p>আপনার pending কাজগুলো আমি ধাপে ধাপে দেখিয়ে দিচ্ছি।</p>
+  </section>
+
+  <section>
+    <h2>HR Services</h2>
+    <div class="service-grid">
+      <div class="service-card">Movement Request</div>
+      <div class="service-card">Leave Application</div>
+      <div class="service-card">Pay Slip</div>
+      <div class="service-card">TA/DA Claim</div>
+    </div>
+  </section>
+</main>
+
+<style>
+.pd-screen {
+  min-height: 100vh;
+  background: #F5F6F8;
+  padding: 16px;
+  font-family: Manrope, Inter, Roboto, sans-serif;
+  color: #1F2937;
+}
+.welcome p {
+  margin: 0 0 4px;
+  color: #6B7280;
+  font-size: 14px;
+}
+.welcome h1 {
+  margin: 0 0 20px;
+  font-size: 20px;
+  line-height: 1.3;
+}
+.assistant-card,
+.service-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1px solid #E6E8EB;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  padding: 16px;
+}
+.assistant-card {
+  margin-bottom: 24px;
+}
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.service-card {
+  min-height: 96px;
+}
+</style>
