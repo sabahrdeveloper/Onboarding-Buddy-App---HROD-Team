@@ -4,6 +4,7 @@ import {
   getAuthUser,
   getEmployee,
   getEmployeeAssessments,
+  getEmployeeVariant,
   getMilestoneAssessments,
   getProfile,
   getTaskStatuses,
@@ -36,27 +37,34 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const [
     { data: profile },
     { data: employee },
+    variant,
     { data: rawTasks },
     { data: statuses },
     { data: contactsData },
-    { data: templatesData },
     { data: assessmentsData },
-    { data: milestoneTemplatesData },
     { data: milestoneAssessmentsData },
     { data: sbuAssignmentsData },
     { data: isManagerData },
   ] = await Promise.all([
     getProfile(),
     getEmployee(),
+    getEmployeeVariant(),
     getTasks(),
     getTaskStatuses(),
     supabase.from("contacts").select("*").order("key"),
-    supabase.from("assessment_templates").select("*"),
     getEmployeeAssessments(),
-    supabase.from("milestone_assessment_templates").select("*"),
     getMilestoneAssessments(),
     supabase.from("sbu_hr_assignments").select("*"),
     supabase.rpc("is_manager"),
+  ]);
+
+  // Assessment/milestone templates depend on the variant just resolved above,
+  // so they're fetched in a second small batch rather than the first —
+  // same reasoning as the subordinate-detail page: an employee only ever
+  // sees their own variant's template content.
+  const [{ data: templatesData }, { data: milestoneTemplatesData }] = await Promise.all([
+    supabase.from("assessment_templates").select("*").eq("variant_id", variant.id),
+    supabase.from("milestone_assessment_templates").select("*").eq("variant_id", variant.id),
   ]);
 
   const statusByTaskId = new Map((statuses ?? []).map((s) => [s.task_id, s]));
@@ -174,6 +182,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     sbu: employee?.sbu ?? "",
   };
 
+  // Theme override: only variant colors that are actually set replace the
+  // app/globals.css defaults — a variant with no colors configured yet (or a
+  // future variant missing one field) falls straight back to the existing
+  // Akij Resource palette via normal CSS cascade, never a blank/broken value.
+  const themeVars: React.CSSProperties = {
+    ...(variant.primaryColor ? { "--green": variant.primaryColor } : {}),
+    ...(variant.secondaryColor ? { "--green-dark": variant.secondaryColor } : {}),
+    ...(variant.accentColor ? { "--blue": variant.accentColor } : {}),
+    ...(variant.backgroundColor ? { "--bg": variant.backgroundColor } : {}),
+  } as React.CSSProperties;
+
   return (
     <OverlayProvider
       tasks={tasks}
@@ -186,9 +205,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       hrContactList={hrContactList}
       itContactList={itContactList}
     >
-      <div className="flex min-h-full flex-col">
+      <div className="flex min-h-full flex-col" style={themeVars}>
         <div className="flex-1 px-4 pb-5 pt-1">{children}</div>
-        <BottomNav showTeamTab={Boolean(isManagerData)} />
+        <BottomNav showTeamTab={Boolean(isManagerData)} navMode={variant.navMode} />
       </div>
     </OverlayProvider>
   );
