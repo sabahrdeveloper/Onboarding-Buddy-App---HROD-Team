@@ -2,6 +2,7 @@ import { Icon, type IconName } from "@/components/icons/Icon";
 import { createClient } from "@/lib/supabase/server";
 import { getEmployee, getProfile, getTaskStatuses, getTasks } from "@/lib/data/queries";
 import { signOut } from "@/actions/sign-out";
+import { linkGoogleAccount } from "@/actions/auth";
 import { currentPhase, progressPercent } from "@/lib/business-rules";
 import { PHASE_META, GROWTH_PHASE_META, type PhaseKey } from "@/lib/types";
 
@@ -15,8 +16,16 @@ interface BadgeDef {
 export default async function ProfilePage() {
   const supabase = await createClient();
 
-  const [{ data: profile }, { data: employee }, { data: tasks }, { data: statuses }, { data: badgeDefs }] =
-    await Promise.all([getProfile(), getEmployee(), getTasks(), getTaskStatuses(), supabase.from("badges").select("*")]);
+  const [{ data: profile }, { data: employee }, { data: tasks }, { data: statuses }, { data: badgeDefs }, { data: userData }] =
+    await Promise.all([
+      getProfile(),
+      getEmployee(),
+      getTasks(),
+      getTaskStatuses(),
+      supabase.from("badges").select("*"),
+      supabase.auth.getUser(),
+    ]);
+  const googleLinked = (userData.user?.identities ?? []).some((i) => i.provider === "google");
 
   const doneTaskIds = new Set((statuses ?? []).filter((s) => s.done).map((s) => s.task_id));
   const taskByWorkNumber = new Map((tasks ?? []).map((t) => [t.work_number, t]));
@@ -157,6 +166,18 @@ export default async function ProfilePage() {
           </div>
         ))}
       </div>
+
+      {!googleLinked && (
+        <form action={linkGoogleAccount} className="mt-5">
+          <button
+            type="submit"
+            className="flex w-full items-center justify-center gap-2.5 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-text transition-transform active:scale-[0.98]"
+          >
+            <Icon name="paperclip" size={16} />
+            Link Google Account
+          </button>
+        </form>
+      )}
 
       <form action={signOut} className="mt-5">
         <button

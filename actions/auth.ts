@@ -1,9 +1,43 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { deriveSyntheticEmail, MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { getPeopleDeskEmployee } from "@/lib/peopledesk";
+
+async function siteOrigin() {
+  const h = await headers();
+  return process.env.NEXT_PUBLIC_SITE_URL ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+}
+
+/**
+ * Starts Google OAuth for login. Only useful for accounts that already linked
+ * a Google identity via `linkGoogleAccount` below — a fresh, unlinked Google
+ * sign-in has no way to know which enroll number it belongs to (the app's
+ * synthetic email scheme means the account's real email is never on record
+ * as its auth email), so the callback route rejects those.
+ */
+export async function signInWithGoogle() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${await siteOrigin()}/auth/callback` },
+  });
+  if (error || !data.url) redirect("/login?error=google_start_failed");
+  redirect(data.url);
+}
+
+/** Links a Google identity to the currently signed-in (enroll-number) account. */
+export async function linkGoogleAccount() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.linkIdentity({
+    provider: "google",
+    options: { redirectTo: `${await siteOrigin()}/auth/callback?linked=1` },
+  });
+  if (error || !data.url) redirect("/profile?error=google_link_failed");
+  redirect(data.url);
+}
 
 export interface LoginState {
   error?: string;
