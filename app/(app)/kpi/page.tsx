@@ -1,7 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { getEmployee, getSubordinates, getTaskStatuses, getTasks, getUnreadKpiNotificationCount } from "@/lib/data/queries";
+import {
+  getEmployee,
+  getEmployeeVariant,
+  getSubordinates,
+  getTaskStatuses,
+  getTasks,
+  getUnreadKpiNotificationCount,
+} from "@/lib/data/queries";
 import type { Database } from "@/lib/supabase/types";
 import { Icon } from "@/components/icons/Icon";
 import { KpiHeadlineCard } from "@/components/kpi/KpiHeadlineCard";
@@ -72,6 +80,11 @@ async function buildCompletions(
 }
 
 export default async function KpiPage() {
+  // KPI is not a feature of resources-mode variants (Akij Light Engineering) —
+  // direct URL access redirects to their actual third tab instead.
+  const variant = await getEmployeeVariant();
+  if (variant.navMode === "resources") redirect("/resources");
+
   const supabase = await createClient();
   const [{ data: employee }, { data: rawTasks }, { data: selfStatuses }, isManagerRes, isHrRes, isItRes] = await Promise.all([
     getEmployee(),
