@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // Handles both fresh Google sign-in and the redirect back after linking
 // Google to an already-authenticated enroll-number account (see
@@ -26,7 +27,12 @@ export async function GET(request: Request) {
     : { data: null };
 
   if (!profile) {
+    // A fresh Google sign-in with no matching enroll number has no valid use —
+    // leaving the auth.users row behind would permanently claim this Google
+    // identity, so a later real `linkGoogleAccount` attempt would fail with
+    // identity_already_exists even though nothing actually uses that account.
     await supabase.auth.signOut();
+    if (userId) await createAdminClient().auth.admin.deleteUser(userId);
     return NextResponse.redirect(`${origin}/login?error=google_not_linked`);
   }
 
