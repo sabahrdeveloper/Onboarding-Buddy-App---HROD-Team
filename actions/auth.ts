@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { deriveSyntheticEmail, MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { getPeopleDeskEmployee } from "@/lib/peopledesk";
+import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 
 async function siteOrigin() {
   const h = await headers();
@@ -118,7 +119,13 @@ export async function loginOrCreateProfile(_prevState: LoginState, formData: For
       return { error: "প্রোফাইল তৈরি করা যায়নি। একটু পর আবার চেষ্টা করুন।" };
     }
 
-    const { data: tasks } = await supabase.from("onboarding_tasks").select("id");
+    // Scoped to this employee's onboarding variant (resolved from their
+    // PeopleDesk sbu) — an unscoped select here would give a Light
+    // Engineering employee status rows for both variants' tasks.
+    const { data: variantsData } = await supabase.from("onboarding_variants").select("*");
+    const variant = resolveVariantForSbu(peopleDeskEmployee.sbu, (variantsData ?? []).map(mapOnboardingVariant));
+
+    const { data: tasks } = await supabase.from("onboarding_tasks").select("id").eq("variant_id", variant.id);
     if (tasks && tasks.length > 0) {
       await supabase.from("employee_task_status").insert(
         tasks.map((t) => ({ employee_enroll_number: enrollNumber, task_id: t.id })),
