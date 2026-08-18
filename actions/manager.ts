@@ -32,8 +32,8 @@ export async function assignBuddy(input: {
   const { error } = await supabase.rpc("manager_set_buddy", {
     p_enroll: input.enrollNumber,
     p_buddy: input.buddy.trim(),
-    p_buddy_phone: input.buddyPhone.trim() || null,
-    p_buddy_email: input.buddyEmail.trim() || null,
+    p_buddy_phone: input.buddyPhone.trim(),
+    p_buddy_email: input.buddyEmail.trim(),
   });
   if (error) return { error: "Buddy assign করা যায়নি। একটু পর আবার চেষ্টা করুন।" };
 
