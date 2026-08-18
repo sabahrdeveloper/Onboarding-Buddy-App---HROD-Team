@@ -42,3 +42,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# local permission settings can accumulate secrets in allowlisted command strings
+.claude/settings.local.json

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 
 // These wrap queries that app/(app)/layout.tsx and its child pages (home,
 // journey, profile) all need in the same request. Without React.cache(), each
@@ -39,9 +40,25 @@ export const getSubordinates = cache(async () => {
   return supabase.from("employees").select("*").neq("enroll_number", employee.enroll_number).order("name");
 });
 
-export const getTasks = cache(async () => {
+export const getOnboardingVariants = cache(async () => {
   const supabase = await createClient();
-  return supabase.from("onboarding_tasks").select("*").order("work_number");
+  return supabase.from("onboarding_variants").select("*");
+});
+
+export const getEmployeeVariant = cache(async () => {
+  const { data: employee } = await getEmployee();
+  const { data: variants } = await getOnboardingVariants();
+  return resolveVariantForSbu(employee?.sbu, (variants ?? []).map(mapOnboardingVariant));
+});
+
+export const getTasksForVariant = cache(async (variantId: string) => {
+  const supabase = await createClient();
+  return supabase.from("onboarding_tasks").select("*").eq("variant_id", variantId).order("work_number");
+});
+
+export const getTasks = cache(async () => {
+  const variant = await getEmployeeVariant();
+  return getTasksForVariant(variant.id);
 });
 
 export const getTaskStatuses = cache(async () => {

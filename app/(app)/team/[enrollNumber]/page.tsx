@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getTasks, getIsSuperAdmin } from "@/lib/data/queries";
+import { getTasksForVariant, getOnboardingVariants, getIsSuperAdmin } from "@/lib/data/queries";
+import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 import { Icon } from "@/components/icons/Icon";
 import { ManagerFeedbackForm } from "@/components/team/ManagerFeedbackForm";
 import { BuddyAssignForm } from "@/components/team/BuddyAssignForm";
@@ -27,8 +28,20 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
   // for the subordinate, if any, plus its review comment history.
   const period = currentPeriodMonth();
 
+  // Fetched up front (not inside the batch below) because scoping the
+  // subordinate's task list to the right variant needs their sbu first —
+  // using the viewing manager's own variant here would be wrong whenever a
+  // manager's direct report belongs to a different onboarding variant.
+  const { data: subordinate } = await supabase.from("employees").select("*").eq("enroll_number", enrollNumber).single();
+  // RLS (is_manager_of) already blocks this for anyone who isn't the actual
+  // reporting manager — a null row here means either a bad enroll number or
+  // an unauthorized access attempt, both of which should 404 the same way.
+  if (!subordinate) notFound();
+
+  const { data: variants } = await getOnboardingVariants();
+  const variant = resolveVariantForSbu(subordinate.sbu, (variants ?? []).map(mapOnboardingVariant));
+
   const [
-    { data: subordinate },
     { data: tasks },
     { data: statuses },
     { data: templates },
@@ -37,8 +50,7 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
     isSuperAdmin,
     { data: kpiSubmissionRow },
   ] = await Promise.all([
-    supabase.from("employees").select("*").eq("enroll_number", enrollNumber).single(),
-    getTasks(),
+    getTasksForVariant(variant.id),
     supabase.from("employee_task_status").select("task_id, done").eq("employee_enroll_number", enrollNumber),
     supabase.from("assessment_templates").select("*"),
     supabase.from("employee_assessments").select("*").eq("employee_enroll_number", enrollNumber),
@@ -97,11 +109,6 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
       createdAt: c.created_at,
     }));
   }
-
-  // RLS (is_manager_of) already blocks this for anyone who isn't the actual
-  // reporting manager — a null row here means either a bad enroll number or
-  // an unauthorized access attempt, both of which should 404 the same way.
-  if (!subordinate) notFound();
 
   const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
   const doneTaskIds = new Set((statuses ?? []).filter((s) => s.done).map((s) => s.task_id));
