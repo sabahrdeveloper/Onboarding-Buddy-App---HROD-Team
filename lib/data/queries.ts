@@ -115,6 +115,18 @@ export const getIsSuperAdmin = cache(async () => {
   return Boolean(data?.is_super_admin);
 });
 
+export const getUnreadNotificationCount = cache(async () => {
+  const supabase = await createClient();
+  const { data: employee } = await getEmployee();
+  if (!employee) return 0;
+  const { count } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("recipient_enroll_number", employee.enroll_number)
+    .eq("is_read", false);
+  return count ?? 0;
+});
+
 export const getUnreadKpiNotificationCount = cache(async () => {
   const supabase = await createClient();
   const { data: employee } = await getEmployee();

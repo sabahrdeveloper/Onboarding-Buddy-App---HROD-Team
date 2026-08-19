@@ -4,6 +4,7 @@ import { MilestoneCard, GrowthMilestoneCard } from "@/components/journey/Milesto
 import { ContinueJourneyButton } from "@/components/journey/ContinueJourneyButton";
 import { ViewWorkListButton } from "@/components/journey/ViewWorkListButton";
 import { HrServicesGrid } from "@/components/journey/HrServicesGrid";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Icon } from "@/components/icons/Icon";
 import {
   getAdminVariantId,
@@ -15,6 +16,7 @@ import {
   getProfile,
   getTaskStatuses,
   getTasks,
+  getUnreadNotificationCount,
 } from "@/lib/data/queries";
 import { currentPhase, daysRemainingInPhase, growthReviewUnlocked, progressPercent } from "@/lib/business-rules";
 import { PHASE_META, GROWTH_PHASE_META, type PhaseKey } from "@/lib/types";
@@ -30,6 +32,7 @@ export default async function HomePage() {
     variant,
     isHrAdmin,
     adminVariantId,
+    unreadNotificationCount,
   ] = await Promise.all([
     getProfile(),
     getEmployee(),
@@ -40,7 +43,9 @@ export default async function HomePage() {
     getEmployeeVariant(),
     getIsHrAdmin(),
     getAdminVariantId(),
+    getUnreadNotificationCount(),
   ]);
+  const isMirrorApp = variant.navMode === "resources";
 
   const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
   const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
@@ -96,13 +101,16 @@ export default async function HomePage() {
         <img src={variant.logoUrl} alt={variant.name} className="mb-3 h-8 w-auto object-contain object-left" />
       )}
 
-      <div className="mb-4 mt-0.5">
-        <div className="font-en text-xl font-bold leading-tight text-text">
-          আসসালামু আলাইকুম, <b>{firstName}</b>
+      <div className="mb-4 mt-0.5 flex items-start justify-between gap-3">
+        <div>
+          <div className="font-en text-xl font-bold leading-tight text-text">
+            আসসালামু আলাইকুম, <b>{firstName}</b>
+          </div>
+          <div className="mt-1 text-sm font-medium leading-snug text-muted">
+            আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা শুরু হয়েছে।
+          </div>
         </div>
-        <div className="mt-1 text-sm font-medium leading-snug text-muted">
-          আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা শুরু হয়েছে।
-        </div>
+        {isMirrorApp && <NotificationBell unreadCount={unreadNotificationCount} />}
       </div>
 
       <div className="mb-3 rounded-card border border-line bg-card p-4 shadow-card">
@@ -172,6 +180,15 @@ export default async function HomePage() {
             + Add Resource
           </Link>
         </div>
+      )}
+
+      {isHrAdmin && isMirrorApp && (
+        <Link
+          href="/admin/notifications"
+          className="mt-3 block rounded-button border border-line bg-card px-4 py-3.5 text-center font-en text-sm font-bold text-text"
+        >
+          Push Notification
+        </Link>
       )}
 
       <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">HR Services</div>

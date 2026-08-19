@@ -3,8 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons/Icon";
-import { markAllNotificationsRead, markNotificationRead } from "@/actions/employee-kpi";
 import { formatMonthDate } from "@/lib/employee-kpi";
+
+interface NotificationActionResult {
+  error?: string;
+  success?: boolean;
+}
 
 export interface NotificationRow {
   id: string;
@@ -49,7 +53,13 @@ function groupByDate(notifications: NotificationRow[]): [string, NotificationRow
   return [...groups.entries()];
 }
 
-export function NotificationsList({ notifications }: { notifications: NotificationRow[] }) {
+interface NotificationsListProps {
+  notifications: NotificationRow[];
+  markOneAction: (id: string) => Promise<NotificationActionResult>;
+  markAllAction: () => Promise<NotificationActionResult>;
+}
+
+export function NotificationsList({ notifications, markOneAction, markAllAction }: NotificationsListProps) {
   const router = useRouter();
   const [tab, setTab] = useState<"all" | "unread">("all");
   const [isPending, startTransition] = useTransition();
@@ -58,7 +68,7 @@ export function NotificationsList({ notifications }: { notifications: Notificati
 
   function handleMarkAllRead() {
     startTransition(async () => {
-      await markAllNotificationsRead();
+      await markAllAction();
       router.refresh();
     });
   }
@@ -66,7 +76,7 @@ export function NotificationsList({ notifications }: { notifications: Notificati
   function handleOpen(id: string, isRead: boolean) {
     if (isRead) return;
     startTransition(async () => {
-      await markNotificationRead(id);
+      await markOneAction(id);
       router.refresh();
     });
   }

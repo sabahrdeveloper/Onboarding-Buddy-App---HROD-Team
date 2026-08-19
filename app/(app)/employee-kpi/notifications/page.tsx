@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEmployee, getSubordinates } from "@/lib/data/queries";
 import { Icon } from "@/components/icons/Icon";
 import { NotificationsList, type NotificationRow } from "@/components/employee-kpi/NotificationsList";
+import { markAllNotificationsRead, markNotificationRead } from "@/actions/employee-kpi";
 import { currentPeriodMonth, periodLabel } from "@/lib/employee-kpi";
 
 export default async function KpiNotificationsPage() {
@@ -72,7 +73,7 @@ export default async function KpiNotificationsPage() {
         <div className="font-en text-lg font-extrabold text-text">Notifications</div>
       </div>
 
-      <NotificationsList notifications={rows} />
+      <NotificationsList notifications={rows} markOneAction={markNotificationRead} markAllAction={markAllNotificationsRead} />
     </div>
   );
 }
