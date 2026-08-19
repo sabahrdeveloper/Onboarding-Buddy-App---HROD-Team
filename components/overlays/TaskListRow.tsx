@@ -7,9 +7,10 @@ interface TaskListRowProps {
   contact: Contact | undefined;
   onClick: () => void;
   showManualLink?: boolean;
+  bn?: boolean;
 }
 
-export function TaskListRow({ task, contact, onClick, showManualLink = false }: TaskListRowProps) {
+export function TaskListRow({ task, contact, onClick, showManualLink = false, bn: isBn }: TaskListRowProps) {
   return (
     <div
       onClick={onClick}
@@ -44,11 +45,11 @@ export function TaskListRow({ task, contact, onClick, showManualLink = false }: 
           }`}
         >
           {task.done && <Icon name="check" size={12} />}
-          {task.done ? "Done" : "Pending"}
+          {task.done ? (isBn ? "সম্পন্ন" : "Done") : isBn ? "বাকি" : "Pending"}
         </span>
         {showManualLink && (
           <span className="ml-auto flex items-center gap-[3px] font-en text-[11px] font-bold text-green-dark">
-            Manual
+            {isBn ? "ম্যানুয়াল" : "Manual"}
             <Icon name="arrowRight" size={13} />
           </span>
         )}

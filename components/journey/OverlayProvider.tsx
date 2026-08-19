@@ -74,6 +74,10 @@ interface OverlayProviderProps {
   hrContactList: ContactListEntry[];
   itContactList: ContactListEntry[];
   helpIssueTypes: string[];
+  /** True only when the employee's currently effective variant is Sales
+   * Onboarding (navMode === 'resources') — every other variant/track keeps
+   * the existing English/mixed copy unchanged. */
+  bn?: boolean;
   children: React.ReactNode;
 }
 
@@ -88,6 +92,7 @@ export function OverlayProvider({
   hrContactList,
   itContactList,
   helpIssueTypes,
+  bn: isBn,
   children,
 }: OverlayProviderProps) {
   const router = useRouter();
@@ -169,7 +174,7 @@ export function OverlayProvider({
 
     if (result.phaseComplete && result.phaseTitle) {
       setSuccessModal({
-        title: "Phase Complete",
+        title: isBn ? "পর্যায় সম্পন্ন" : "Phase Complete",
         message: `"${result.phaseTitle}" সম্পন্ন হয়েছে। আপনি ১৮০ দিনের পথচলায় দুর্দান্ত এগিয়ে যাচ্ছেন।`,
       });
     }
@@ -225,15 +230,15 @@ export function OverlayProvider({
     setPending(false);
     pop();
     router.refresh();
-    const title = template?.title ?? "Assessment";
+    const title = template?.title ?? (isBn ? "অ্যাসেসমেন্ট" : "Assessment");
     if (key === "180") {
       setSuccessModal({
-        title: "Growth Review Submitted",
+        title: isBn ? "গ্রোথ রিভিউ জমা হয়েছে" : "Growth Review Submitted",
         message: `180 Days Growth Review সফলভাবে জমা হয়েছে। HR ও Manager রিভিউ করবে।`,
       });
     } else {
       setSuccessModal({
-        title: "Assessment Submitted",
+        title: isBn ? "অ্যাসেসমেন্ট জমা হয়েছে" : "Assessment Submitted",
         message: `${title} সফলভাবে জমা হয়েছে। HR team রিভিউ করবে।`,
       });
     }
@@ -256,10 +261,14 @@ export function OverlayProvider({
     }
     pop();
     setSuccessModal({
-      title: "Help Request Sent",
+      title: isBn ? "হেল্প রিকোয়েস্ট পাঠানো হয়েছে" : "Help Request Sent",
       message: "ধন্যবাদ। আপনার onboarding support request HR team-এর কাছে পাঠানো হয়েছে।",
-      ticket: { ticketId: result.ticketId!, status: "Pending", assignedTo: "HR Onboarding Team" },
-      secondaryLabel: "Close",
+      ticket: {
+        ticketId: result.ticketId!,
+        status: isBn ? "অপেক্ষমাণ" : "Pending",
+        assignedTo: isBn ? "HR Onboarding টিম" : "HR Onboarding Team",
+      },
+      secondaryLabel: isBn ? "বন্ধ করুন" : "Close",
     });
   }
 
@@ -310,6 +319,7 @@ export function OverlayProvider({
           contacts={contacts}
           onBack={pop}
           onOpenTask={(id) => push({ type: "task", taskId: id })}
+          bn={isBn}
         />
       )}
 
@@ -322,6 +332,7 @@ export function OverlayProvider({
           onBack={pop}
           onOpenTask={(id) => push({ type: "task", taskId: id })}
           onOpenAssessment={(key) => push({ type: "assessment", key })}
+          bn={isBn}
         />
       )}
 
@@ -336,6 +347,7 @@ export function OverlayProvider({
           onNeedHelp={() => push({ type: "help", relatedTaskId: currentTask.id })}
           onContactAction={handleContactAction}
           pending={pending}
+          bn={isBn}
         />
       )}
 
@@ -347,6 +359,7 @@ export function OverlayProvider({
           onBack={pop}
           onSubmit={(payload) => handleSubmitAssessment(currentTemplate.key, payload)}
           pending={pending}
+          bn={isBn}
         />
       )}
 
@@ -354,10 +367,12 @@ export function OverlayProvider({
         <GrowthReviewOverlay
           unlocked={growthUnlocked}
           completedCount={completedCount}
+          totalCount={tasks.length}
           reviewItems={templateByKey.get("180")?.items ?? []}
           onBack={pop}
           onStartReview={() => push({ type: "assessment", key: "180" })}
           onContact={(key) => push({ type: "contact", contactKey: key })}
+          bn={isBn}
         />
       )}
 
@@ -368,6 +383,7 @@ export function OverlayProvider({
           onBack={pop}
           onSubmit={(payload) => handleSubmitHelp(helpRelatedTaskId, payload)}
           pending={pending}
+          bn={isBn}
         />
       )}
 
@@ -385,12 +401,21 @@ export function OverlayProvider({
               ? () => push({ type: "contactList", category: currentContact.key as "hr" | "it" })
               : undefined
           }
+          bn={isBn}
         />
       )}
 
       {current?.type === "contactList" && (
         <ContactListSheet
-          title={current.category === "hr" ? "HR Contact List" : "IT Contact List"}
+          title={
+            isBn
+              ? current.category === "hr"
+                ? "HR কন্টাক্ট তালিকা"
+                : "IT কন্টাক্ট তালিকা"
+              : current.category === "hr"
+                ? "HR Contact List"
+                : "IT Contact List"
+          }
           entries={current.category === "hr" ? hrContactList : itContactList}
           onClose={pop}
           onContactAction={handleContactAction}

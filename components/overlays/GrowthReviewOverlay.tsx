@@ -8,23 +8,27 @@ import { bn } from "@/lib/bn";
 interface GrowthReviewOverlayProps {
   unlocked: boolean;
   completedCount: number;
+  totalCount: number;
   reviewItems: string[];
   onBack: () => void;
   onStartReview: () => void;
   onContact: (key: "hr" | "manager") => void;
+  bn?: boolean;
 }
 
 export function GrowthReviewOverlay({
   unlocked,
   completedCount,
+  totalCount,
   reviewItems,
   onBack,
   onStartReview,
   onContact,
+  bn: isBn,
 }: GrowthReviewOverlayProps) {
   return (
     <OverlayShell
-      title="180 Days Growth Review"
+      title={isBn ? "১৮০ দিনের গ্রোথ রিভিউ" : "180 Days Growth Review"}
       subtitle="১৮০ দিনের গ্রোথ ও ইন্টিগ্রেশন রিভিউ"
       onBack={onBack}
       footer={
@@ -34,7 +38,7 @@ export function GrowthReviewOverlay({
             disabled={!unlocked}
             className="flex w-full items-center justify-center gap-2 rounded-button bg-green px-4 py-4 font-en text-base font-bold text-white shadow-[0_2px_8px_rgba(44,162,77,.28)] transition-transform active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-[#9aa1ab] disabled:shadow-none"
           >
-            Start 180 Days Review
+            {isBn ? "১৮০ দিনের রিভিউ শুরু করুন" : "Start 180 Days Review"}
             <Icon name="arrowRight" size={18} />
           </button>
           <div className="mt-2.5 flex gap-2.5">
@@ -42,13 +46,13 @@ export function GrowthReviewOverlay({
               onClick={() => onContact("hr")}
               className="flex flex-1 items-center justify-center rounded-input border border-line bg-card py-3.5 font-en text-sm font-bold text-text shadow-card"
             >
-              Contact HR
+              {isBn ? "HR-এর সাথে যোগাযোগ" : "Contact HR"}
             </button>
             <button
               onClick={() => onContact("manager")}
               className="flex flex-1 items-center justify-center rounded-input border border-line bg-card py-3.5 font-en text-sm font-bold text-text shadow-card"
             >
-              Contact Manager
+              {isBn ? "ম্যানেজারের সাথে যোগাযোগ" : "Contact Manager"}
             </button>
           </div>
         </div>
@@ -71,15 +75,15 @@ export function GrowthReviewOverlay({
         <div className="mb-3.5 rounded-[14px] border border-[#cbddfb] bg-blue-light p-3.5 text-[13.5px] font-medium leading-[1.55] text-[#2f4e86]">
           <span className="mb-1.5 flex items-center gap-1.5 font-en text-[11px] font-bold uppercase tracking-[0.03em] opacity-85">
             <Icon name="lock" size={13} />
-            Locked
+            {isBn ? "লকড" : "Locked"}
           </span>
-          এখন পর্যন্ত {bn(completedCount)}/৫০ works সম্পন্ন। সব ৫০টি কাজ ও ৩টি assessment শেষ হলে 180 Days Review unlock
-          হবে।
+          এখন পর্যন্ত {bn(completedCount)}/{bn(totalCount)} works সম্পন্ন। সব {bn(totalCount)}টি কাজ ও ৩টি assessment শেষ
+          হলে 180 Days Review unlock হবে।
         </div>
       )}
 
       <div className="mb-3 mt-2 font-en text-xs font-bold uppercase tracking-[0.03em] text-muted">
-        Growth Review Items
+        {isBn ? "গ্রোথ রিভিউ আইটেম" : "Growth Review Items"}
       </div>
       {reviewItems.map((item, i) => (
         <div

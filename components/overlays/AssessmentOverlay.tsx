@@ -8,6 +8,7 @@ import { bn } from "@/lib/bn";
 import type { AssessmentTemplate, MilestoneAssessmentTemplate, MilestoneIdentity } from "@/lib/types";
 
 const RATING_LABELS = ["1 · Strongly Disagree", "2 · Somewhat Disagree", "3 · Agree", "4 · Strongly Agree"];
+const RATING_LABELS_BN = ["১ · একদমই একমত না", "২ · কিছুটা একমত না", "৩ · একমত", "৪ · সম্পূর্ণ একমত"];
 const RATING_ON_CLASSES = [
   "border-[#f1b4b6] bg-err-bg text-err-tx",
   "border-[#f0d08a] bg-warn-bg text-warn-tx",
@@ -29,6 +30,7 @@ interface AssessmentOverlayProps {
   onBack: () => void;
   onSubmit: (payload: AssessmentSubmitPayload) => void;
   pending: boolean;
+  bn?: boolean;
 }
 
 function IdentityRow({ label, value }: { label: string; value: string }) {
@@ -47,7 +49,9 @@ export function AssessmentOverlay({
   onBack,
   onSubmit,
   pending,
+  bn: isBn,
 }: AssessmentOverlayProps) {
+  const ratingLabels = isBn ? RATING_LABELS_BN : RATING_LABELS;
   const [tab, setTab] = useState<"rating" | "assessment">(milestoneTemplate ? "assessment" : "rating");
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comment, setComment] = useState("");
@@ -73,7 +77,7 @@ export function AssessmentOverlay({
   return (
     <OverlayShell
       title={template.title}
-      subtitle="Responsible: HR / Manager"
+      subtitle={isBn ? "দায়িত্বে: HR / Manager" : "Responsible: HR / Manager"}
       onBack={onBack}
       footer={
         <button
@@ -81,7 +85,7 @@ export function AssessmentOverlay({
           disabled={pending || !canSubmit}
           className="flex w-full items-center justify-center gap-2 rounded-button bg-green px-4 py-4 font-en text-base font-bold text-white shadow-[0_2px_8px_rgba(44,162,77,.28)] transition-transform active:scale-[0.98] disabled:opacity-50"
         >
-          Submit
+          {isBn ? "জমা দিন" : "Submit"}
         </button>
       }
     >
@@ -94,7 +98,7 @@ export function AssessmentOverlay({
             }`}
           >
             {milestoneTemplate && assessmentComplete && <Icon name="checkCircle" size={14} className="text-green-dark" />}
-            Assessment
+            {isBn ? "অ্যাসেসমেন্ট" : "Assessment"}
           </button>
           <button
             onClick={() => setTab("rating")}
@@ -103,7 +107,7 @@ export function AssessmentOverlay({
             }`}
           >
             {ratingComplete && <Icon name="checkCircle" size={14} className="text-green-dark" />}
-            Rating
+            {isBn ? "রেটিং" : "Rating"}
           </button>
         </div>
       )}
@@ -111,13 +115,13 @@ export function AssessmentOverlay({
       {tab === "assessment" && milestoneTemplate && (
         <>
           <div className="mb-3 mt-0.5 font-en text-xs font-bold uppercase tracking-[0.03em] text-muted">
-            Identity
+            {isBn ? "পরিচিতি" : "Identity"}
           </div>
           <div className="mb-4 rounded-card border border-line bg-card px-4 shadow-card">
-            <IdentityRow label="Employee ID" value={identityDefaults.employeeId} />
-            <IdentityRow label="Full Name" value={identityDefaults.fullName} />
-            <IdentityRow label="Company Email" value={identityDefaults.email} />
-            <IdentityRow label="Designation" value={identityDefaults.designation} />
+            <IdentityRow label={isBn ? "এমপ্লয়ি আইডি" : "Employee ID"} value={identityDefaults.employeeId} />
+            <IdentityRow label={isBn ? "পুরো নাম" : "Full Name"} value={identityDefaults.fullName} />
+            <IdentityRow label={isBn ? "কোম্পানি ইমেইল" : "Company Email"} value={identityDefaults.email} />
+            <IdentityRow label={isBn ? "পদবী" : "Designation"} value={identityDefaults.designation} />
             <IdentityRow label="SBU" value={identityDefaults.sbu} />
           </div>
           <div className="mb-3.5">
@@ -140,7 +144,7 @@ export function AssessmentOverlay({
           </div>
 
           <div className="mb-3 font-en text-xs font-bold uppercase tracking-[0.03em] text-muted">
-            Review Questions
+            {isBn ? "রিভিউ প্রশ্ন" : "Review Questions"}
           </div>
           {milestoneTemplate.questions.map((q, i) => (
             <div key={q} className="mb-[11px] rounded-[14px] border border-line bg-card p-3.5 shadow-card">
@@ -154,7 +158,7 @@ export function AssessmentOverlay({
                     responses[q] === "yes" ? "border-green bg-green-light text-green-dark" : "border-line bg-bg text-muted"
                   }`}
                 >
-                  Yes
+                  {isBn ? "হ্যাঁ" : "Yes"}
                 </button>
                 <button
                   onClick={() => setResponses((r) => ({ ...r, [q]: "no" }))}
@@ -162,7 +166,7 @@ export function AssessmentOverlay({
                     responses[q] === "no" ? "border-[#f1b4b6] bg-err-bg text-err-tx" : "border-line bg-bg text-muted"
                   }`}
                 >
-                  No
+                  {isBn ? "না" : "No"}
                 </button>
               </div>
             </div>
@@ -184,7 +188,7 @@ export function AssessmentOverlay({
           </div>
 
           <div className="mb-3 mt-2 font-en text-xs font-bold uppercase tracking-[0.03em] text-muted">
-            Your Experience
+            {isBn ? "আপনার অভিজ্ঞতা" : "Your Experience"}
           </div>
           {template.items.map((item, i) => (
             <div key={item} className="mb-[11px] rounded-[14px] border border-line bg-card p-3.5 shadow-card">
@@ -200,7 +204,7 @@ export function AssessmentOverlay({
                       ratings[item] === n ? RATING_ON_CLASSES[n - 1] : "border-line bg-bg text-muted"
                     }`}
                   >
-                    {RATING_LABELS[n - 1]}
+                    {ratingLabels[n - 1]}
                   </button>
                 ))}
               </div>
@@ -208,7 +212,9 @@ export function AssessmentOverlay({
           ))}
 
           <div className="mb-3.5">
-            <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">Your Comment</label>
+            <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">
+              {isBn ? "আপনার মন্তব্য" : "Your Comment"}
+            </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}

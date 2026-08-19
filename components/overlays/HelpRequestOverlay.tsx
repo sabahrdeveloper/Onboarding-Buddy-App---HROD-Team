@@ -11,9 +11,17 @@ interface HelpRequestOverlayProps {
   onBack: () => void;
   onSubmit: (payload: { issueType: string; description: string; phone: string }) => void;
   pending: boolean;
+  bn?: boolean;
 }
 
-export function HelpRequestOverlay({ issueTypes, relatedTaskTitle, onBack, onSubmit, pending }: HelpRequestOverlayProps) {
+export function HelpRequestOverlay({
+  issueTypes,
+  relatedTaskTitle,
+  onBack,
+  onSubmit,
+  pending,
+  bn: isBn,
+}: HelpRequestOverlayProps) {
   const [issueType, setIssueType] = useState(issueTypes[0] ?? "");
   const [description, setDescription] = useState("");
   const [phone, setPhone] = useState("");
@@ -21,7 +29,7 @@ export function HelpRequestOverlay({ issueTypes, relatedTaskTitle, onBack, onSub
 
   return (
     <OverlayShell
-      title="Request Help"
+      title={isBn ? "সাহায্য চান" : "Request Help"}
       onBack={onBack}
       footer={
         <button
@@ -29,7 +37,7 @@ export function HelpRequestOverlay({ issueTypes, relatedTaskTitle, onBack, onSub
           disabled={pending}
           className="flex w-full items-center justify-center gap-2 rounded-button bg-green px-4 py-4 font-en text-base font-bold text-white shadow-[0_2px_8px_rgba(44,162,77,.28)] transition-transform active:scale-[0.98] disabled:opacity-70"
         >
-          Send to HR Team
+          {isBn ? "HR টিমে পাঠান" : "Send to HR Team"}
           <Icon name="arrowRight" size={18} />
         </button>
       }
@@ -46,7 +54,9 @@ export function HelpRequestOverlay({ issueTypes, relatedTaskTitle, onBack, onSub
       </div>
 
       <div className="mb-3.5">
-        <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">Issue Type</label>
+        <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">
+          {isBn ? "সমস্যার ধরন" : "Issue Type"}
+        </label>
         <select
           value={issueType}
           onChange={(e) => setIssueType(e.target.value)}
@@ -60,7 +70,9 @@ export function HelpRequestOverlay({ issueTypes, relatedTaskTitle, onBack, onSub
 
       {relatedTaskTitle && (
         <div className="mb-3.5">
-          <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">Related Task</label>
+          <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">
+            {isBn ? "সংশ্লিষ্ট কাজ" : "Related Task"}
+          </label>
           <input
             readOnly
             value={relatedTaskTitle}
@@ -70,7 +82,9 @@ export function HelpRequestOverlay({ issueTypes, relatedTaskTitle, onBack, onSub
       )}
 
       <div className="mb-3.5">
-        <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">Problem Description</label>
+        <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">
+          {isBn ? "সমস্যার বিবরণ" : "Problem Description"}
+        </label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -80,7 +94,9 @@ export function HelpRequestOverlay({ issueTypes, relatedTaskTitle, onBack, onSub
       </div>
 
       <div className="mb-3.5">
-        <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">Preferred Contact Number</label>
+        <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">
+          {isBn ? "পছন্দের যোগাযোগ নম্বর" : "Preferred Contact Number"}
+        </label>
         <input
           type="tel"
           value={phone}
@@ -91,7 +107,9 @@ export function HelpRequestOverlay({ issueTypes, relatedTaskTitle, onBack, onSub
       </div>
 
       <div>
-        <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">Upload Screenshot / Document</label>
+        <label className="mb-1.5 block font-en text-[12.5px] font-bold text-text">
+          {isBn ? "স্ক্রিনশট / ডকুমেন্ট আপলোড করুন" : "Upload Screenshot / Document"}
+        </label>
         <div
           onClick={() => setAttached(true)}
           className={`cursor-pointer rounded-[14px] border-[1.5px] border-dashed p-[18px] text-center text-[13px] font-medium ${

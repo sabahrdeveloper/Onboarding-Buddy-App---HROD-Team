@@ -1,7 +1,7 @@
 import { Icon } from "@/components/icons/Icon";
 import { OverlayShell } from "@/components/overlays/OverlayShell";
 import { TaskListRow } from "@/components/overlays/TaskListRow";
-import { PHASE_META, type AssessmentKey, type Contact, type PhaseKey, type Task } from "@/lib/types";
+import { PHASE_META, PHASE_META_BN, type AssessmentKey, type Contact, type PhaseKey, type Task } from "@/lib/types";
 
 interface PhaseViewOverlayProps {
   phaseKey: PhaseKey;
@@ -11,6 +11,7 @@ interface PhaseViewOverlayProps {
   onBack: () => void;
   onOpenTask: (taskId: string) => void;
   onOpenAssessment: (key: AssessmentKey) => void;
+  bn?: boolean;
 }
 
 export function PhaseViewOverlay({
@@ -21,13 +22,14 @@ export function PhaseViewOverlay({
   onBack,
   onOpenTask,
   onOpenAssessment,
+  bn: isBn,
 }: PhaseViewOverlayProps) {
   const phaseTasks = tasks.filter((t) => t.phase === phaseKey);
   const done = phaseTasks.filter((t) => t.done).length;
   const total = phaseTasks.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const contactByKey = new Map(contacts.map((c) => [c.key, c]));
-  const meta = PHASE_META[phaseKey];
+  const meta = (isBn ? PHASE_META_BN : PHASE_META)[phaseKey];
 
   return (
     <OverlayShell title={meta.title} subtitle={meta.sub} onBack={onBack} progressPct={pct}>
@@ -37,6 +39,7 @@ export function PhaseViewOverlay({
           task={task}
           contact={contactByKey.get(task.responsibleKey)}
           onClick={() => onOpenTask(task.id)}
+          bn={isBn}
         />
       ))}
 
@@ -53,7 +56,9 @@ export function PhaseViewOverlay({
             <Icon name={submitted ? "check" : "info"} size={15} />
           </div>
           <div className="flex-1 font-en text-sm font-semibold leading-snug text-blue-dark">
-            {phaseKey} Days Assessment {submitted ? "— সম্পন্ন" : "নিন"}
+            {isBn
+              ? `${phaseKey} দিনের অ্যাসেসমেন্ট ${submitted ? "— সম্পন্ন" : "নিন"}`
+              : `${phaseKey} Days Assessment ${submitted ? "— সম্পন্ন" : "নিন"}`}
           </div>
         </div>
         <div className="mt-[9px] flex flex-wrap items-center gap-1.5 pl-[35px]">

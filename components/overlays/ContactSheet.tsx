@@ -10,6 +10,7 @@ interface ContactSheetProps {
   onContactAction: (type: ContactActionType, info: ContactActionInfo) => void;
   onRequestHelp: () => void;
   onViewContactList?: () => void;
+  bn?: boolean;
 }
 
 const CONTACT_LIST_LABEL: Record<string, string> = {
@@ -17,8 +18,20 @@ const CONTACT_LIST_LABEL: Record<string, string> = {
   it: "IT Contact List",
 };
 
-export function ContactSheet({ contact, onClose, onContactAction, onRequestHelp, onViewContactList }: ContactSheetProps) {
-  const contactListLabel = CONTACT_LIST_LABEL[contact.key];
+const CONTACT_LIST_LABEL_BN: Record<string, string> = {
+  hr: "HR কন্টাক্ট তালিকা",
+  it: "IT কন্টাক্ট তালিকা",
+};
+
+export function ContactSheet({
+  contact,
+  onClose,
+  onContactAction,
+  onRequestHelp,
+  onViewContactList,
+  bn: isBn,
+}: ContactSheetProps) {
+  const contactListLabel = (isBn ? CONTACT_LIST_LABEL_BN : CONTACT_LIST_LABEL)[contact.key];
   return (
     <div
       className="fixed inset-0 z-[88] flex items-end bg-[rgba(31,41,55,.45)]"
@@ -54,7 +67,7 @@ export function ContactSheet({ contact, onClose, onContactAction, onRequestHelp,
             className="flex flex-1 flex-col items-center gap-[5px] rounded-xl bg-green-light py-[11px] font-en text-[11.5px] font-bold text-green-dark transition-transform active:scale-[0.97] disabled:opacity-40"
           >
             <Icon name="phone" size={18} />
-            Call
+            {isBn ? "কল" : "Call"}
           </button>
           <button
             onClick={() => onContactAction("whatsapp", contact)}
@@ -70,7 +83,7 @@ export function ContactSheet({ contact, onClose, onContactAction, onRequestHelp,
             className="flex flex-1 flex-col items-center gap-[5px] rounded-xl bg-blue-light py-[11px] font-en text-[11.5px] font-bold text-blue-dark transition-transform active:scale-[0.97] disabled:opacity-40"
           >
             <Icon name="mail" size={18} />
-            Message
+            {isBn ? "মেসেজ" : "Message"}
           </button>
           {contactListLabel && (
             <button
@@ -88,7 +101,7 @@ export function ContactSheet({ contact, onClose, onContactAction, onRequestHelp,
           className="mt-3.5 flex w-full items-center justify-center gap-1.5 rounded-input border border-line bg-card py-3.5 font-en text-sm font-bold text-text shadow-card"
         >
           <Icon name="help" size={16} />
-          Request Help Form
+          {isBn ? "হেল্প রিকোয়েস্ট ফর্ম" : "Request Help Form"}
         </button>
       </div>
     </div>

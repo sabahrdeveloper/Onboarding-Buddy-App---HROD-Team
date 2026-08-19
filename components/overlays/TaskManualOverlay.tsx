@@ -16,6 +16,7 @@ interface TaskManualOverlayProps {
   onNeedHelp: () => void;
   onContactAction: (type: ContactActionType, info: ContactActionInfo) => void;
   pending: boolean;
+  bn?: boolean;
 }
 
 export function TaskManualOverlay({
@@ -26,6 +27,7 @@ export function TaskManualOverlay({
   onNeedHelp,
   onContactAction,
   pending,
+  bn: isBn,
 }: TaskManualOverlayProps) {
   const question = task.confirmQuestion || "চলুন এই কাজটি সম্পন্ন করি।";
   const primaryContact = contacts[0];
@@ -43,7 +45,7 @@ export function TaskManualOverlay({
               className="flex flex-1 items-center justify-center gap-1.5 rounded-input border border-line bg-card py-3.5 font-en text-sm font-bold text-text shadow-card"
             >
               <Icon name="help" size={16} />
-              Need Help
+              {isBn ? "সাহায্য দরকার" : "Need Help"}
             </button>
             <button
               disabled
@@ -61,7 +63,7 @@ export function TaskManualOverlay({
               className="flex w-full items-center justify-center gap-2 rounded-button bg-green px-4 py-4 font-en text-base font-bold text-white shadow-[0_2px_8px_rgba(44,162,77,.28)] transition-transform active:scale-[0.98] disabled:opacity-70"
             >
               <Icon name="check" size={18} />
-              Yes, Mark as Done
+              {isBn ? "হ্যাঁ, সম্পন্ন হিসেবে চিহ্নিত করুন" : "Yes, Mark as Done"}
             </button>
             <div className="mt-2.5 flex gap-2.5">
               <button
@@ -69,14 +71,14 @@ export function TaskManualOverlay({
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-input border border-line bg-card py-3.5 font-en text-sm font-bold text-text shadow-card"
               >
                 <Icon name="phone" size={16} />
-                Contact
+                {isBn ? "যোগাযোগ" : "Contact"}
               </button>
               <button
                 onClick={onNeedHelp}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-input border border-line bg-card py-3.5 font-en text-sm font-bold text-text shadow-card"
               >
                 <Icon name="help" size={16} />
-                Need Help
+                {isBn ? "সাহায্য দরকার" : "Need Help"}
               </button>
             </div>
           </div>
@@ -114,7 +116,7 @@ export function TaskManualOverlay({
               className="flex flex-1 flex-col items-center gap-[5px] rounded-xl bg-green-light py-[11px] font-en text-[11.5px] font-bold text-green-dark transition-transform active:scale-[0.97] disabled:opacity-40"
             >
               <Icon name="phone" size={18} />
-              Call
+              {isBn ? "কল" : "Call"}
             </button>
             <button
               onClick={() => onContactAction("whatsapp", contact)}
@@ -130,7 +132,7 @@ export function TaskManualOverlay({
               className="flex flex-1 flex-col items-center gap-[5px] rounded-xl bg-blue-light py-[11px] font-en text-[11.5px] font-bold text-blue-dark transition-transform active:scale-[0.97] disabled:opacity-40"
             >
               <Icon name="mail" size={18} />
-              Message
+              {isBn ? "মেসেজ" : "Message"}
             </button>
           </div>
         </div>
@@ -145,7 +147,7 @@ export function TaskManualOverlay({
       </div>
 
       <div className="mb-3 mt-2 font-en text-xs font-bold uppercase tracking-[0.03em] text-muted">
-        How to Complete — Manual
+        {isBn ? "যেভাবে সম্পন্ন করবেন — ম্যানুয়াল" : "How to Complete — Manual"}
       </div>
       {task.howToSteps.map((step, i) => (
         <div key={i} className="mb-[11px] flex items-start gap-3">

@@ -215,6 +215,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       hrContactList={hrContactList}
       itContactList={itContactList}
       helpIssueTypes={helpIssueTypes}
+      bn={variant.navMode === "resources"}
     >
       <div className="flex min-h-full flex-col" style={themeVars}>
         <div className="flex-1 px-4 pb-5 pt-1">{children}</div>
