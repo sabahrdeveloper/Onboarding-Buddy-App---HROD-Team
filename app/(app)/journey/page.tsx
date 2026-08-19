@@ -47,7 +47,8 @@ export default async function JourneyPage() {
 
         <Link
           href="/leaderboard"
-          className="mb-2.5 flex items-center justify-center gap-2 rounded-button border border-line bg-card px-4 py-3 font-en text-sm font-bold text-text shadow-card transition-transform active:scale-[0.98]"
+          className="mb-2.5 flex items-center justify-center gap-2 rounded-button border-2 bg-card px-4 py-3 font-en text-sm font-bold text-text shadow-card transition-transform active:scale-[0.98]"
+          style={{ borderColor: "#D4AF37" }}
         >
           <Icon name="award" size={18} />
           {isBn ? "লিডারবোর্ড" : "Leaderboard"}
