@@ -24,11 +24,6 @@ function PodiumSlot({ entry }: { entry: LeaderboardEntry | undefined }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-end">
       <div className="relative mb-2">
-        {entry.rank === 1 && (
-          <div className="absolute -top-[22px] left-1/2 -translate-x-1/2 text-2xl leading-none" aria-hidden>
-            👑
-          </div>
-        )}
         <div
           className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-green-light font-en text-lg font-extrabold text-green-dark"
           style={{ border: `3px solid ${borderColor}` }}
