@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireVariantAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 
 function parseTaskForm(formData: FormData) {
   return {
@@ -29,12 +30,31 @@ export async function createTask(formData: FormData) {
 
   const fields = parseTaskForm(formData);
   const admin = createAdminClient();
-  const { error } = await admin.from("onboarding_tasks").insert({
-    ...fields,
-    responsible_keys: [fields.responsible_key],
-    variant_id: auth.variantId,
-  });
+  const { data: inserted, error } = await admin
+    .from("onboarding_tasks")
+    .insert({ ...fields, responsible_keys: [fields.responsible_key], variant_id: auth.variantId })
+    .select("id")
+    .single();
   if (error) return { error: error.message };
+
+  // Backfill employee_task_status for every employee already provisioned in
+  // this variant — without this, anyone onboarded before this task existed
+  // could never mark it done (the mark-done action only UPDATEs an existing
+  // row), and phase-completion math treats the missing row as "already done"
+  // for every phase. Found during QA of this screen.
+  const [{ data: variantsData }, { data: employees }] = await Promise.all([
+    admin.from("onboarding_variants").select("*"),
+    admin.from("employees").select("enroll_number, sbu"),
+  ]);
+  const variants = (variantsData ?? []).map(mapOnboardingVariant);
+  const targetEmployees = (employees ?? []).filter(
+    (e) => resolveVariantForSbu(e.sbu, variants).id === auth.variantId,
+  );
+  if (targetEmployees.length > 0) {
+    await admin
+      .from("employee_task_status")
+      .insert(targetEmployees.map((e) => ({ employee_enroll_number: e.enroll_number, task_id: inserted.id })));
+  }
 
   revalidatePath("/admin/tasks");
   redirect("/admin/tasks");
