@@ -54,7 +54,7 @@ export function BottomNav({ showTeamTab, navMode = "kpi", showEmployeesTab }: Bo
         return { href: "/employees", label: isBn ? "কর্মীরা" : "Employees", icon: "briefcase" as IconName };
       }
       if (item.href === "/resources") {
-        return { href: "/admin/tasks", label: isBn ? "অ্যাডমিন প্যানেল" : "Admin Panel", icon: "lock" as IconName };
+        return { href: "/admin/tasks", label: isBn ? "HR প্যানেল" : "HR Panel", icon: "lock" as IconName };
       }
       return item;
     });
