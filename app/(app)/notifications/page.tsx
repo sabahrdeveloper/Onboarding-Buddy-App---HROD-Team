@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getEmployee } from "@/lib/data/queries";
-import { Icon } from "@/components/icons/Icon";
+import { BackButton } from "@/components/ui/BackButton";
 import { NotificationsList, type NotificationRow } from "@/components/employee-kpi/NotificationsList";
 import { markAllNotificationsRead, markNotificationRead } from "@/actions/notifications";
 
@@ -30,13 +29,7 @@ export default async function NotificationsPage() {
   return (
     <div>
       <div className="mb-4 mt-0.5 flex items-center gap-3">
-        <Link
-          href="/home"
-          aria-label="Back"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-bg text-text"
-        >
-          <Icon name="chevronLeft" size={18} />
-        </Link>
+        <BackButton fallbackHref="/home" />
         <div className="font-en text-lg font-extrabold text-text">Notifications</div>
       </div>
 
