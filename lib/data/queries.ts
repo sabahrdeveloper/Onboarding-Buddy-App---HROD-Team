@@ -167,6 +167,71 @@ export const getUnreadNotificationCount = cache(async () => {
   return count ?? 0;
 });
 
+// Journey assessments (Sales Onboarding / dynamic-journey variants only) —
+// see supabase/migrations/0007_journey_assessments.sql for why this is a
+// separate model from assessment_templates.
+
+export const getJourneyAssessmentForJourney = cache(async (journeyId: string) => {
+  const supabase = await createClient();
+  return supabase.from("journey_assessments").select("*").eq("journey_id", journeyId).maybeSingle();
+});
+
+// Admin view — includes correct_option_key. Never pass this straight to a
+// client component the employee can inspect; use getQuestionsForEmployee
+// (below) for anything rendered to an employee taking the assessment.
+export const getQuestionsForAdmin = cache(async (assessmentId: string) => {
+  const supabase = await createClient();
+  return supabase.from("journey_assessment_questions").select("*").eq("assessment_id", assessmentId).order("sequence");
+});
+
+export const getQuestionsForEmployee = cache(async (assessmentId: string) => {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("journey_assessment_questions")
+    .select("id, type, question_text, options, marks, sequence")
+    .eq("assessment_id", assessmentId)
+    .order("sequence");
+  return { data, error };
+});
+
+export const getAssessmentSubmission = cache(async (employeeEnrollNumber: string, assessmentId: string) => {
+  const supabase = await createClient();
+  return supabase
+    .from("journey_assessment_submissions")
+    .select("*")
+    .eq("employee_enroll_number", employeeEnrollNumber)
+    .eq("assessment_id", assessmentId)
+    .maybeSingle();
+});
+
+// All of the current employee's submissions across every journey in their
+// variant — used to gate journey completion (tasks done AND submitted).
+export const getMySubmittedAssessmentJourneyIds = cache(async () => {
+  const supabase = await createClient();
+  const { data: employee } = await getEmployee();
+  if (!employee) return new Set<string>();
+  const { data } = await supabase
+    .from("journey_assessment_submissions")
+    .select("journey_id")
+    .eq("employee_enroll_number", employee.enroll_number);
+  return new Set((data ?? []).map((s) => s.journey_id));
+});
+
+export const getUnreadHrCompletionCount = cache(async (variantId: string) => {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("hr_journey_completion_notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("variant_id", variantId)
+    .eq("is_read", false);
+  return count ?? 0;
+});
+
+export const getLeaderboardPhoto = cache(async (employeeEnrollNumber: string) => {
+  const supabase = await createClient();
+  return supabase.from("leaderboard_photos").select("*").eq("employee_enroll_number", employeeEnrollNumber).maybeSingle();
+});
+
 export const getUnreadKpiNotificationCount = cache(async () => {
   const supabase = await createClient();
   const { data: employee } = await getEmployee();

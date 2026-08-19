@@ -11,6 +11,7 @@ import { GrowthReviewOverlay } from "@/components/overlays/GrowthReviewOverlay";
 import { HelpRequestOverlay } from "@/components/overlays/HelpRequestOverlay";
 import { ContactSheet } from "@/components/overlays/ContactSheet";
 import { ContactListSheet } from "@/components/overlays/ContactListSheet";
+import { JourneyAssessmentOverlay, type AssessmentQuestion } from "@/components/overlays/JourneyAssessmentOverlay";
 import type { ContactListEntry } from "@/lib/contact-lists";
 import { toWhatsAppNumber, type ContactActionInfo } from "@/lib/contact-actions";
 import { Toast, type ToastState } from "@/components/ui/Toast";
@@ -19,6 +20,7 @@ import { markTaskDone } from "@/actions/tasks";
 import { submitAssessment } from "@/actions/assessments";
 import { submitMilestoneAssessment } from "@/actions/milestone-assessments";
 import { submitHelpRequest } from "@/actions/help";
+import { submitJourneyAssessment } from "@/actions/journey-assessment";
 import { growthReviewUnlocked } from "@/lib/business-rules";
 import type {
   AssessmentKey,
@@ -38,7 +40,8 @@ type OverlayEntry =
   | { type: "growth" }
   | { type: "help"; relatedTaskId?: string }
   | { type: "contact"; contactKey: string }
-  | { type: "contactList"; category: "hr" | "it" };
+  | { type: "contactList"; category: "hr" | "it" }
+  | { type: "journeyAssessment"; journeyId: string };
 
 interface OverlayContextValue {
   openList: () => void;
@@ -46,6 +49,7 @@ interface OverlayContextValue {
   openGrowth: () => void;
   openHelp: (relatedTaskId?: string) => void;
   openContact: (contactKey: string) => void;
+  openJourneyAssessment: (journeyId: string) => void;
   notify: (text: string, icon?: IconName) => void;
   taskCount: number;
 }
@@ -77,9 +81,14 @@ interface OverlayProviderProps {
   /** Non-default variants' dynamic journeys (onboarding_phases) — empty for
    * the default variant, which keeps the fixed 30/60/90 PHASE_META lookup. */
   journeys?: { id: string; name: string }[];
-  /** True for any non-default variant — no Growth Review/assessment concept
-   * exists yet for dynamic journeys (deferred). */
+  /** True for any non-default variant. */
   dynamicMode?: boolean;
+  /** Per-journey MCQ/open-answer assessment (answer key already stripped
+   * server-side) — keyed by journey id, one per journey. */
+  journeyAssessments?: Record<string, AssessmentQuestion[]>;
+  /** Journey ids the current employee has already submitted — one-time,
+   * no retake, so this only ever grows. */
+  submittedJourneyIds?: string[];
   /** True only when the employee's currently effective variant is Sales
    * Onboarding (navMode === 'resources') — every other variant/track keeps
    * the existing English/mixed copy unchanged. */
@@ -100,6 +109,8 @@ export function OverlayProvider({
   helpIssueTypes,
   journeys = [],
   dynamicMode = false,
+  journeyAssessments = {},
+  submittedJourneyIds: initialSubmittedJourneyIds = [],
   bn: isBn,
   children,
 }: OverlayProviderProps) {
@@ -108,6 +119,7 @@ export function OverlayProvider({
   const [toast, setToast] = useState<ToastState | null>(null);
   const [successModal, setSuccessModal] = useState<SuccessModalState | null>(null);
   const [pending, setPending] = useState(false);
+  const [submittedJourneyIds, setSubmittedJourneyIds] = useState<Set<string>>(new Set(initialSubmittedJourneyIds));
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Held as local state (not just the prop directly) so marking a task done
@@ -181,6 +193,16 @@ export function OverlayProvider({
     // block anything the user is looking at.
     router.refresh();
 
+    if (dynamicMode) {
+      // Dynamic-journey variants: all-tasks-done auto-pops the mandatory
+      // assessment instead of the fixed-variant "Phase Complete" modal.
+      const journeyId = tasks.find((t) => t.id === taskId)?.phase;
+      if (result.phaseComplete && journeyId && !submittedJourneyIds.has(journeyId) && journeyAssessments[journeyId]?.length) {
+        push({ type: "journeyAssessment", journeyId });
+      }
+      return;
+    }
+
     if (result.phaseComplete && result.phaseTitle) {
       setSuccessModal({
         title: isBn ? "পর্যায় সম্পন্ন" : "Phase Complete",
@@ -253,6 +275,25 @@ export function OverlayProvider({
     }
   }
 
+  async function handleSubmitJourneyAssessment(journeyId: string, answers: Record<string, string>) {
+    setPending(true);
+    const result = await submitJourneyAssessment(journeyId, answers);
+    setPending(false);
+    if (result.error) {
+      showToast(result.error);
+      return;
+    }
+    setSubmittedJourneyIds((prev) => new Set(prev).add(journeyId));
+    pop();
+    router.refresh();
+    setSuccessModal({
+      title: isBn ? "অ্যাসেসমেন্ট জমা হয়েছে" : "Assessment Submitted",
+      message: isBn
+        ? `আপনার স্কোর: ${result.score}। HR টিম শীঘ্রই দেখবে।`
+        : `Your score: ${result.score}. HR will review it soon.`,
+    });
+  }
+
   async function handleSubmitHelp(
     relatedTaskId: string | undefined,
     payload: { issueType: string; description: string; phone: string },
@@ -307,6 +348,7 @@ export function OverlayProvider({
   const currentContact = current?.type === "contact" ? contactByKey.get(current.contactKey) : undefined;
   const helpRelatedTaskId = current?.type === "help" ? current.relatedTaskId : undefined;
   const helpRelatedTask = helpRelatedTaskId ? tasks.find((t) => t.id === helpRelatedTaskId) : undefined;
+  const currentJourneyAssessment = current?.type === "journeyAssessment" ? current.journeyId : undefined;
 
   return (
     <OverlayContext.Provider
@@ -316,6 +358,7 @@ export function OverlayProvider({
         openGrowth: () => push({ type: "growth" }),
         openHelp: (relatedTaskId) => push({ type: "help", relatedTaskId }),
         openContact: (contactKey) => push({ type: "contact", contactKey }),
+        openJourneyAssessment: (journeyId) => push({ type: "journeyAssessment", journeyId }),
         notify: showToast,
         taskCount: tasks.length,
       }}
@@ -338,7 +381,15 @@ export function OverlayProvider({
           phaseKey={current.phaseKey}
           title={dynamicMode ? (journeyById.get(current.phaseKey)?.name ?? "") : undefined}
           sub={dynamicMode ? "" : undefined}
-          hideAssessment={dynamicMode}
+          journeyAssessmentCta={
+            dynamicMode
+              ? {
+                  available: Boolean(journeyAssessments[current.phaseKey]?.length),
+                  submitted: submittedJourneyIds.has(current.phaseKey),
+                  onOpen: () => push({ type: "journeyAssessment", journeyId: current.phaseKey }),
+                }
+              : undefined
+          }
           tasks={tasks}
           contacts={contacts}
           submitted={dynamicMode ? false : phaseFullySubmitted(current.phaseKey)}
@@ -385,6 +436,17 @@ export function OverlayProvider({
           onBack={pop}
           onStartReview={() => push({ type: "assessment", key: "180" })}
           onContact={(key) => push({ type: "contact", contactKey: key })}
+          bn={isBn}
+        />
+      )}
+
+      {currentJourneyAssessment && (
+        <JourneyAssessmentOverlay
+          journeyName={journeyById.get(currentJourneyAssessment)?.name ?? ""}
+          questions={journeyAssessments[currentJourneyAssessment] ?? []}
+          onBack={pop}
+          onSubmit={(answers) => handleSubmitJourneyAssessment(currentJourneyAssessment, answers)}
+          pending={pending}
           bn={isBn}
         />
       )}

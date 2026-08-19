@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PHASE_META, type PhaseKey } from "@/lib/types";
 
 interface MarkTaskDoneResult {
@@ -28,7 +29,7 @@ export async function markTaskDone(taskId: string): Promise<MarkTaskDoneResult> 
     { data: task },
   ] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("onboarding_tasks").select("id, phase").eq("id", taskId).single(),
+    supabase.from("onboarding_tasks").select("id, phase, variant_id").eq("id", taskId).single(),
   ]);
   if (!user) return { error: "লগইন করা নেই।" };
   if (!task) return { error: "কাজটি খুঁজে পাওয়া যায়নি।" };
@@ -58,6 +59,20 @@ export async function markTaskDone(taskId: string): Promise<MarkTaskDoneResult> 
   const phaseTaskIds = new Set((phaseTasks ?? []).map((t) => t.id));
   const phaseStatuses = (allStatuses ?? []).filter((s) => phaseTaskIds.has(s.task_id));
   const phaseComplete = phaseStatuses.length > 0 && phaseStatuses.every((s) => s.done);
+
+  // Sales Onboarding / dynamic-journey variants only — the default variant's
+  // fixed 30/60/90 phases don't need an HR ping per journey completion.
+  if (phaseComplete) {
+    const { data: variant } = await supabase.from("onboarding_variants").select("is_default").eq("id", task.variant_id).single();
+    if (variant && !variant.is_default) {
+      const admin = createAdminClient();
+      await admin.from("hr_journey_completion_notifications").insert({
+        variant_id: task.variant_id,
+        employee_enroll_number: profile.enroll_number,
+        journey_id: task.phase,
+      });
+    }
+  }
 
   revalidatePath("/home");
   revalidatePath("/journey");

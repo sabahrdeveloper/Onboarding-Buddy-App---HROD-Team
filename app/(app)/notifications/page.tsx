@@ -14,7 +14,7 @@ export default async function NotificationsPage() {
   const supabase = await createClient();
   const { data: notifications } = await supabase
     .from("notifications")
-    .select("id, title, body, is_read, created_at")
+    .select("id, title, body, is_read, created_at, action_url")
     .eq("recipient_enroll_number", employee.enroll_number)
     .order("created_at", { ascending: false })
     .limit(100);
@@ -26,6 +26,7 @@ export default async function NotificationsPage() {
     body: n.body,
     isRead: n.is_read,
     createdAt: n.created_at,
+    actionUrl: n.action_url,
   }));
 
   return (

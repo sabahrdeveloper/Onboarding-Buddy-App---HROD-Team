@@ -61,6 +61,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             Journeys
           </Link>
         )}
+        {variant?.is_default === false && (
+          <Link
+            href="/admin/assessments"
+            className="rounded-lg border border-line bg-card px-3 py-1.5 font-en text-[13px] font-semibold text-text"
+          >
+            Assessments
+          </Link>
+        )}
+        {variant?.is_default === false && (
+          <Link
+            href="/admin/completions"
+            className="rounded-lg border border-line bg-card px-3 py-1.5 font-en text-[13px] font-semibold text-text"
+          >
+            Completions
+          </Link>
+        )}
         {variant?.nav_mode === "resources" && (
           <Link
             href="/admin/notifications"

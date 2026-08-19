@@ -17,6 +17,7 @@ export interface NotificationRow {
   body: string;
   isRead: boolean;
   createdAt: string;
+  actionUrl?: string | null;
 }
 
 const TYPE_ICON: Record<string, IconName> = {
@@ -74,12 +75,14 @@ export function NotificationsList({ notifications, markOneAction, markAllAction,
     });
   }
 
-  function handleOpen(id: string, isRead: boolean) {
-    if (isRead) return;
-    startTransition(async () => {
-      await markOneAction(id);
-      router.refresh();
-    });
+  function handleOpen(n: NotificationRow) {
+    if (!n.isRead) {
+      startTransition(async () => {
+        await markOneAction(n.id);
+        router.refresh();
+      });
+    }
+    if (n.actionUrl) router.push(n.actionUrl);
   }
 
   return (
@@ -128,7 +131,7 @@ export function NotificationsList({ notifications, markOneAction, markAllAction,
                 {group.map((n) => (
                   <button
                     key={n.id}
-                    onClick={() => handleOpen(n.id, n.isRead)}
+                    onClick={() => handleOpen(n)}
                     className={`flex items-start gap-3 rounded-card border p-3.5 text-left shadow-card ${
                       n.isRead ? "border-line bg-card" : "border-[#cde9d5] bg-green-light"
                     }`}

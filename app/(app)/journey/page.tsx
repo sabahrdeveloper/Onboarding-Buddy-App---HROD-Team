@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { MilestoneCard, GrowthMilestoneCard } from "@/components/journey/MilestoneCard";
 import { ViewWorkListButton } from "@/components/journey/ViewWorkListButton";
+import { Icon } from "@/components/icons/Icon";
 import {
   getEmployeeAssessments,
   getEmployeeVariant,
@@ -43,6 +45,13 @@ export default async function JourneyPage() {
           </div>
         </div>
 
+        <Link
+          href="/leaderboard"
+          className="mb-2.5 flex items-center justify-center gap-2 rounded-button border border-line bg-card px-4 py-3 font-en text-sm font-bold text-text shadow-card transition-transform active:scale-[0.98]"
+        >
+          <Icon name="award" size={18} />
+          {isBn ? "লিডারবোর্ড" : "Leaderboard"}
+        </Link>
         <ViewWorkListButton bn={isBn} />
 
         {(journeys ?? []).map((j) => {

@@ -16,6 +16,7 @@ import {
   getHomeVariant,
   getIsHrAdmin,
   getMilestoneAssessments,
+  getMySubmittedAssessmentJourneyIds,
   getPhasesForVariant,
   getProfile,
   getTaskStatuses,
@@ -83,7 +84,10 @@ export default async function HomePage() {
   let hasJourneys = true;
 
   if (!variant.isDefault) {
-    const { data: journeys } = await getPhasesForVariant(variant.id, { activeOnly: true });
+    const [{ data: journeys }, submittedJourneyIds] = await Promise.all([
+      getPhasesForVariant(variant.id, { activeOnly: true }),
+      getMySubmittedAssessmentJourneyIds(),
+    ]);
     hasJourneys = (journeys ?? []).length > 0;
     const activeTasks = (tasks ?? []).filter((t) => t.active);
     const doneTaskIds = new Set((statuses ?? []).filter((s) => s.done).map((s) => s.task_id));
@@ -101,14 +105,18 @@ export default async function HomePage() {
     total = activeTasks.length;
     pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
+    // A journey isn't "done" until its mandatory, one-time assessment is
+    // also submitted — not just all tasks checked off.
     const currentJourney = (journeys ?? []).find((j) => {
       const counts = doneByJourney.get(j.id);
-      return counts && counts.done < counts.total;
+      if (!counts) return false;
+      return counts.done < counts.total || !submittedJourneyIds.has(j.id);
     });
 
     if (currentJourney) {
       phase = currentJourney.id;
       const counts = doneByJourney.get(currentJourney.id)!;
+      const tasksDone = counts.total > 0 && counts.done === counts.total;
       milestone = {
         key: currentJourney.id,
         title: currentJourney.name,
@@ -119,9 +127,13 @@ export default async function HomePage() {
         doneTasks: counts.done,
       };
       phaseTitle = currentJourney.name;
-      reminderText = isMirrorApp
-        ? `আপনার "${currentJourney.name}"-এর বাকি কাজ সম্পন্ন করুন।`
-        : `Please complete your remaining tasks in "${currentJourney.name}".`;
+      reminderText = tasksDone
+        ? isMirrorApp
+          ? `আপনার "${currentJourney.name}"-এর সব কাজ শেষ! এখন অ্যাসেসমেন্ট সম্পন্ন করুন।`
+          : `All tasks in "${currentJourney.name}" are done! Please complete the assessment now.`
+        : isMirrorApp
+          ? `আপনার "${currentJourney.name}"-এর বাকি কাজ সম্পন্ন করুন।`
+          : `Please complete your remaining tasks in "${currentJourney.name}".`;
     } else {
       phase = "";
       milestone = null;

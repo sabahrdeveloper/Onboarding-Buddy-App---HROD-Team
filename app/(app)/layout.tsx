@@ -7,11 +7,13 @@ import {
   getEmployeeAssessments,
   getEmployeeVariant,
   getMilestoneAssessments,
+  getMySubmittedAssessmentJourneyIds,
   getPhasesForVariant,
   getProfile,
   getTaskStatuses,
   getTasks,
 } from "@/lib/data/queries";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { combineRole, findSbuAssignments, type SbuHrAssignment } from "@/lib/sbu-matching";
 import { buildCompanyWideContactLists } from "@/lib/contact-lists";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -79,6 +81,43 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ]);
   const helpIssueTypes = (issueTypesData ?? []).map((t) => t.label);
   const journeys = (journeysData ?? []).map((j) => ({ id: j.id, name: j.name }));
+
+  // Employees have no RLS select on journey_assessments/questions (it would
+  // leak the answer key to any authenticated client) — fetched server-side
+  // via the service-role client instead, stripping correct_option_key
+  // before anything reaches the client-side OverlayProvider.
+  let journeyAssessments: Record<string, { id: string; type: "mcq" | "open"; question_text: string; options: { key: string; text: string }[] | null; marks: number }[]> = {};
+  let submittedJourneyIds: string[] = [];
+  if (!variant.isDefault && journeys.length > 0) {
+    const admin = createAdminClient();
+    const journeyIds = journeys.map((j) => j.id);
+    const [{ data: assessments }, submittedSet] = await Promise.all([
+      admin.from("journey_assessments").select("id, journey_id").in("journey_id", journeyIds),
+      getMySubmittedAssessmentJourneyIds(),
+    ]);
+    submittedJourneyIds = [...submittedSet];
+    const assessmentIdByJourneyId = new Map((assessments ?? []).map((a) => [a.journey_id, a.id]));
+    const assessmentIds = (assessments ?? []).map((a) => a.id);
+    const { data: questions } =
+      assessmentIds.length > 0
+        ? await admin
+            .from("journey_assessment_questions")
+            .select("id, assessment_id, type, question_text, options, marks")
+            .in("assessment_id", assessmentIds)
+            .order("sequence")
+        : { data: [] };
+    for (const [journeyId, assessmentId] of assessmentIdByJourneyId) {
+      journeyAssessments[journeyId] = (questions ?? [])
+        .filter((q) => q.assessment_id === assessmentId)
+        .map((q) => ({
+          id: q.id,
+          type: q.type as "mcq" | "open",
+          question_text: q.question_text,
+          options: q.options as { key: string; text: string }[] | null,
+          marks: q.marks,
+        }));
+    }
+  }
 
   const statusByTaskId = new Map((statuses ?? []).map((s) => [s.task_id, s]));
   const tasks: Task[] = (rawTasks ?? []).map((t) => ({
@@ -220,6 +259,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       helpIssueTypes={helpIssueTypes}
       journeys={journeys}
       dynamicMode={!variant.isDefault}
+      journeyAssessments={journeyAssessments}
+      submittedJourneyIds={submittedJourneyIds}
       bn={variant.navMode === "resources"}
     >
       <div className="flex min-h-full flex-col" style={themeVars}>

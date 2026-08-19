@@ -663,6 +663,222 @@ export type Database = {
           },
         ]
       }
+      hr_journey_completion_notifications: {
+        Row: {
+          created_at: string
+          employee_enroll_number: string
+          id: string
+          is_read: boolean
+          journey_id: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_enroll_number: string
+          id?: string
+          is_read?: boolean
+          journey_id: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_enroll_number?: string
+          id?: string
+          is_read?: boolean
+          journey_id?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_journey_completion_notifications_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_journey_completion_notifications_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_assessment_answers: {
+        Row: {
+          answer_text: string | null
+          id: string
+          marks_awarded: number
+          question_id: string
+          selected_option_key: string | null
+          submission_id: string
+        }
+        Insert: {
+          answer_text?: string | null
+          id?: string
+          marks_awarded?: number
+          question_id: string
+          selected_option_key?: string | null
+          submission_id: string
+        }
+        Update: {
+          answer_text?: string | null
+          id?: string
+          marks_awarded?: number
+          question_id?: string
+          selected_option_key?: string | null
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_assessment_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "journey_assessment_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_assessment_answers_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "journey_assessment_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_assessment_questions: {
+        Row: {
+          assessment_id: string
+          correct_option_key: string | null
+          created_at: string
+          id: string
+          marks: number
+          options: Json | null
+          question_text: string
+          sequence: number
+          type: string
+        }
+        Insert: {
+          assessment_id: string
+          correct_option_key?: string | null
+          created_at?: string
+          id?: string
+          marks?: number
+          options?: Json | null
+          question_text: string
+          sequence?: number
+          type: string
+        }
+        Update: {
+          assessment_id?: string
+          correct_option_key?: string | null
+          created_at?: string
+          id?: string
+          marks?: number
+          options?: Json | null
+          question_text?: string
+          sequence?: number
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_assessment_questions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "journey_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_assessment_submissions: {
+        Row: {
+          assessment_id: string
+          employee_enroll_number: string
+          id: string
+          journey_id: string
+          score: number
+          submitted_at: string
+          variant_id: string
+        }
+        Insert: {
+          assessment_id: string
+          employee_enroll_number: string
+          id?: string
+          journey_id: string
+          score?: number
+          submitted_at?: string
+          variant_id: string
+        }
+        Update: {
+          assessment_id?: string
+          employee_enroll_number?: string
+          id?: string
+          journey_id?: string
+          score?: number
+          submitted_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_assessment_submissions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "journey_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_assessment_submissions_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_assessment_submissions_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_assessments: {
+        Row: {
+          created_at: string
+          id: string
+          journey_id: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          journey_id: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          journey_id?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_assessments_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: true
+            referencedRelation: "onboarding_phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journey_assessments_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_comments: {
         Row: {
           author_enroll_number: string
@@ -877,6 +1093,35 @@ export type Database = {
           },
         ]
       }
+      leaderboard_photos: {
+        Row: {
+          employee_enroll_number: string
+          storage_path: string
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          employee_enroll_number: string
+          storage_path: string
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          employee_enroll_number?: string
+          storage_path?: string
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaderboard_photos_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestone_assessment_templates: {
         Row: {
           milestone: string
@@ -950,6 +1195,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          action_url: string | null
           body: string
           created_at: string
           id: string
@@ -959,6 +1205,7 @@ export type Database = {
           variant_id: string
         }
         Insert: {
+          action_url?: string | null
           body: string
           created_at?: string
           id?: string
@@ -968,6 +1215,7 @@ export type Database = {
           variant_id: string
         }
         Update: {
+          action_url?: string | null
           body?: string
           created_at?: string
           id?: string

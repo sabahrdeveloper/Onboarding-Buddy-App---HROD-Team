@@ -9,9 +9,9 @@ interface PhaseViewOverlayProps {
    * directly instead of relying on the fixed PHASE_META lookup. */
   title?: string;
   sub?: string;
-  /** Dynamic-journey variants have no assessment concept yet — hides the
-   * assessment CTA entirely rather than rendering a broken link. */
-  hideAssessment?: boolean;
+  /** Dynamic-journey variants (Sales Onboarding) show the new MCQ/open-answer
+   * journey assessment CTA instead of the default variant's rating one. */
+  journeyAssessmentCta?: { available: boolean; submitted: boolean; onOpen: () => void };
   tasks: Task[];
   contacts: Contact[];
   submitted: boolean;
@@ -25,7 +25,7 @@ export function PhaseViewOverlay({
   phaseKey,
   title,
   sub,
-  hideAssessment,
+  journeyAssessmentCta,
   tasks,
   contacts,
   submitted,
@@ -53,7 +53,31 @@ export function PhaseViewOverlay({
         />
       ))}
 
-      {!hideAssessment && (
+      {journeyAssessmentCta ? (
+        journeyAssessmentCta.available && (
+          <div
+            onClick={() => !journeyAssessmentCta.submitted && journeyAssessmentCta.onOpen()}
+            className={`rounded-2xl border-[1.5px] border-dashed border-blue bg-blue-light p-3.5 transition-transform ${
+              journeyAssessmentCta.submitted ? "" : "cursor-pointer active:scale-[0.99]"
+            }`}
+          >
+            <div className="flex items-start gap-[11px]">
+              <div
+                className={`mt-px flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] border-2 border-blue ${
+                  journeyAssessmentCta.submitted ? "bg-blue text-white" : "text-blue-dark"
+                }`}
+              >
+                <Icon name={journeyAssessmentCta.submitted ? "check" : "info"} size={15} />
+              </div>
+              <div className="flex-1 font-en text-sm font-semibold leading-snug text-blue-dark">
+                {isBn
+                  ? `অ্যাসেসমেন্ট ${journeyAssessmentCta.submitted ? "— সম্পন্ন" : "নিন"}`
+                  : `Assessment ${journeyAssessmentCta.submitted ? "— Complete" : "— Take Now"}`}
+              </div>
+            </div>
+          </div>
+        )
+      ) : (
         <div
           onClick={() => onOpenAssessment(phaseKey as AssessmentKey)}
           className="cursor-pointer rounded-2xl border-[1.5px] border-dashed border-blue bg-blue-light p-3.5 transition-transform active:scale-[0.99]"
