@@ -6,6 +6,7 @@ import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-var
 import { Icon } from "@/components/icons/Icon";
 import { ManagerFeedbackForm } from "@/components/team/ManagerFeedbackForm";
 import { BuddyAssignForm } from "@/components/team/BuddyAssignForm";
+import { assignBuddy } from "@/actions/manager";
 import { SubordinateDetailPanel, type HelpRequestRow } from "@/components/team/SubordinateDetailPanel";
 import type { TaskStatusRow } from "@/components/kpi/TaskStatusList";
 import { ManagerReviewPanel, type CommentRow, type ReviewSubmission } from "@/components/employee-kpi/ManagerReviewPanel";
@@ -219,6 +220,7 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
           initialBuddy={subordinate.buddy ?? ""}
           initialPhone={subordinate.buddy_phone ?? ""}
           initialEmail={subordinate.buddy_email ?? ""}
+          action={assignBuddy}
         />
       </div>
 

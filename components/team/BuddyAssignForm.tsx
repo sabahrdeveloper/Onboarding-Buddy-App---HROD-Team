@@ -2,16 +2,28 @@
 
 import { useState, useTransition } from "react";
 import { Icon } from "@/components/icons/Icon";
-import { assignBuddy } from "@/actions/manager";
+
+interface BuddyAssignAction {
+  (input: { enrollNumber: string; buddy: string; buddyPhone: string; buddyEmail: string }): Promise<{
+    error?: string;
+    success?: boolean;
+  }>;
+}
 
 interface BuddyAssignFormProps {
   enrollNumber: string;
   initialBuddy: string;
   initialPhone: string;
   initialEmail: string;
+  /** Manager Portal passes actions/manager.ts's assignBuddy (RPC, gated on
+   * is_manager_of); the HR admin Employees screen passes
+   * assignBuddyAsHrAdmin (direct write, gated on admin_variant_id) — same
+   * form, two authorization paths depending on the caller's relationship
+   * to the employee. */
+  action: BuddyAssignAction;
 }
 
-export function BuddyAssignForm({ enrollNumber, initialBuddy, initialPhone, initialEmail }: BuddyAssignFormProps) {
+export function BuddyAssignForm({ enrollNumber, initialBuddy, initialPhone, initialEmail, action }: BuddyAssignFormProps) {
   const [buddy, setBuddy] = useState(initialBuddy);
   const [phone, setPhone] = useState(initialPhone);
   const [email, setEmail] = useState(initialEmail);
@@ -23,7 +35,7 @@ export function BuddyAssignForm({ enrollNumber, initialBuddy, initialPhone, init
     setError(null);
     setSuccess(false);
     startTransition(async () => {
-      const result = await assignBuddy({ enrollNumber, buddy, buddyPhone: phone, buddyEmail: email });
+      const result = await action({ enrollNumber, buddy, buddyPhone: phone, buddyEmail: email });
       if (result.error) {
         setError(result.error);
         return;

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminVariantId, getOnboardingVariants, getTasksForVariant } from "@/lib/data/queries";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 import { Icon } from "@/components/icons/Icon";
+import { BuddyAssignForm } from "@/components/team/BuddyAssignForm";
+import { assignBuddyAsHrAdmin } from "@/actions/admin-employees";
 import { progressPercent } from "@/lib/business-rules";
 import type { PhaseKey } from "@/lib/types";
 
@@ -96,6 +98,22 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         <div className="mt-2 text-[12.5px] font-medium text-muted">
           Total: {completed}/{total} works completed
         </div>
+      </div>
+
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Buddy Assignment</div>
+      <div className="mb-4 rounded-card border border-line bg-card p-4 shadow-card">
+        {employee.buddy && (
+          <div className="mb-3 rounded-xl bg-green-light px-3.5 py-2.5 text-[12.5px] font-semibold text-green-dark">
+            Currently assigned: {employee.buddy}
+          </div>
+        )}
+        <BuddyAssignForm
+          enrollNumber={employee.enroll_number}
+          initialBuddy={employee.buddy ?? ""}
+          initialPhone={employee.buddy_phone ?? ""}
+          initialEmail={employee.buddy_email ?? ""}
+          action={assignBuddyAsHrAdmin}
+        />
       </div>
 
       <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Submitted Tickets</div>
