@@ -119,13 +119,19 @@ export async function loginOrCreateProfile(_prevState: LoginState, formData: For
       return { error: "প্রোফাইল তৈরি করা যায়নি। একটু পর আবার চেষ্টা করুন।" };
     }
 
-    // Scoped to this employee's onboarding variant (resolved from their
-    // PeopleDesk sbu) — an unscoped select here would give a Light
-    // Engineering employee status rows for both variants' tasks.
+    // Provisioned for this employee's own onboarding variant (resolved from
+    // their PeopleDesk sbu). If that variant isn't the default one, they
+    // also run the normal/default onboarding alongside it (see
+    // /select-onboarding) and need status rows for both task sets — a
+    // default-variant employee only ever gets the one.
     const { data: variantsData } = await supabase.from("onboarding_variants").select("*");
-    const variant = resolveVariantForSbu(peopleDeskEmployee.sbu, (variantsData ?? []).map(mapOnboardingVariant));
+    const variants = (variantsData ?? []).map(mapOnboardingVariant);
+    const homeVariant = resolveVariantForSbu(peopleDeskEmployee.sbu, variants);
+    const variantIds = homeVariant.isDefault
+      ? [homeVariant.id]
+      : [homeVariant.id, ...variants.filter((v) => v.isDefault).map((v) => v.id)];
 
-    const { data: tasks } = await supabase.from("onboarding_tasks").select("id").eq("variant_id", variant.id);
+    const { data: tasks } = await supabase.from("onboarding_tasks").select("id").in("variant_id", variantIds);
     if (tasks && tasks.length > 0) {
       await supabase.from("employee_task_status").insert(
         tasks.map((t) => ({ employee_enroll_number: enrollNumber, task_id: t.id })),

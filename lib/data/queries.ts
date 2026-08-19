@@ -1,6 +1,8 @@
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
+import { ONBOARDING_TRACK_COOKIE, isOnboardingTrack } from "@/lib/onboarding-track";
 
 // These wrap queries that app/(app)/layout.tsx and its child pages (home,
 // journey, profile) all need in the same request. Without React.cache(), each
@@ -45,10 +47,38 @@ export const getOnboardingVariants = cache(async () => {
   return supabase.from("onboarding_variants").select("*");
 });
 
-export const getEmployeeVariant = cache(async () => {
+// The employee's own SBU-resolved variant, ignoring any onboarding-track
+// choice — this is "which variant's population they actually belong to,"
+// used everywhere that reasons about the employee as data (HR admin
+// screens targeting them, provisioning, etc.), never for deciding what
+// content *they themselves* currently see.
+export const getHomeVariant = cache(async () => {
   const { data: employee } = await getEmployee();
   const { data: variants } = await getOnboardingVariants();
   return resolveVariantForSbu(employee?.sbu, (variants ?? []).map(mapOnboardingVariant));
+});
+
+// What content/theme/nav the currently-logged-in employee actually sees.
+// For a default-variant employee this is always their home variant — no
+// choice exists. An employee whose home variant is non-default (e.g. Akij
+// Light Engineering) additionally runs the normal/default onboarding
+// alongside their special one, and picks which to view via the
+// /select-onboarding page — that choice is stored in a per-session cookie
+// (cleared on sign-out, so it's re-asked every login) and is what this
+// resolves against. Every existing page that reads "the employee's
+// variant" already goes through this one function, so centralizing the
+// track logic here is what makes it apply everywhere for free.
+export const getEmployeeVariant = cache(async () => {
+  const homeVariant = await getHomeVariant();
+  if (homeVariant.isDefault) return homeVariant;
+
+  const cookieStore = await cookies();
+  const track = cookieStore.get(ONBOARDING_TRACK_COOKIE)?.value;
+  if (!isOnboardingTrack(track) || track === "sales") return homeVariant;
+
+  const { data: variants } = await getOnboardingVariants();
+  const defaultVariant = (variants ?? []).map(mapOnboardingVariant).find((v) => v.isDefault);
+  return defaultVariant ?? homeVariant;
 });
 
 export const getTasksForVariant = cache(async (variantId: string) => {
