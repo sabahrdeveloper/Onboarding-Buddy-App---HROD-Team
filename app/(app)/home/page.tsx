@@ -6,6 +6,7 @@ import { ViewWorkListButton } from "@/components/journey/ViewWorkListButton";
 import { HrServicesGrid } from "@/components/journey/HrServicesGrid";
 import { Icon } from "@/components/icons/Icon";
 import {
+  getAdminVariantId,
   getEmployee,
   getEmployeeAssessments,
   getEmployeeVariant,
@@ -28,6 +29,7 @@ export default async function HomePage() {
     { data: milestoneAssessments },
     variant,
     isHrAdmin,
+    adminVariantId,
   ] = await Promise.all([
     getProfile(),
     getEmployee(),
@@ -37,6 +39,7 @@ export default async function HomePage() {
     getMilestoneAssessments(),
     getEmployeeVariant(),
     getIsHrAdmin(),
+    getAdminVariantId(),
   ]);
 
   const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
@@ -176,6 +179,7 @@ export default async function HomePage() {
         managerPhone={employee?.reporting_manager_phone}
         buddyPhone={employee?.buddy_phone}
         buddyAssigned={Boolean(employee?.buddy)}
+        showEmployeesCard={Boolean(adminVariantId)}
       />
 
       <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Current Milestone</div>

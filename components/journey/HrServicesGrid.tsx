@@ -17,9 +17,12 @@ interface HrServicesGridProps {
   managerPhone?: string | null;
   buddyPhone?: string | null;
   buddyAssigned?: boolean;
+  /** A variant-scoped HR admin has no use for the AI Assistant card — it's
+   * replaced by an Employees card, mirroring BottomNav's showEmployeesTab. */
+  showEmployeesCard?: boolean;
 }
 
-export function HrServicesGrid({ managerPhone, buddyPhone, buddyAssigned }: HrServicesGridProps) {
+export function HrServicesGrid({ managerPhone, buddyPhone, buddyAssigned, showEmployeesCard }: HrServicesGridProps) {
   const { openContact, notify } = useOverlay();
 
   const HR_SERVICES: HrService[] = [
@@ -28,7 +31,9 @@ export function HrServicesGrid({ managerPhone, buddyPhone, buddyAssigned }: HrSe
     { key: "manager", label: "Manager", sub: managerPhone || "Team lead", icon: "briefcase" },
     { key: "buddy", label: "Buddy", sub: buddyAssigned ? buddyPhone || "Mentor" : "Not assigned yet", icon: "userCheck" },
     { key: "helpCalls", label: "Help Calls", sub: "Your submitted tickets", icon: "ticket", blue: true, href: "/help-calls" },
-    { key: "assistant", label: "AI Assistant", sub: "Ask anything", icon: "chat", blue: true, href: "/assistant" },
+    showEmployeesCard
+      ? { key: "employees", label: "Employees", sub: "View onboarding roster", icon: "briefcase", blue: true, href: "/employees" }
+      : { key: "assistant", label: "AI Assistant", sub: "Ask anything", icon: "chat", blue: true, href: "/assistant" },
   ];
 
   function handleClick(key: string) {
