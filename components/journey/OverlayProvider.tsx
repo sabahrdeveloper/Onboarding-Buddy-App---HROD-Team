@@ -326,6 +326,7 @@ export function OverlayProvider({
         <FullTaskListOverlay
           tasks={tasks}
           contacts={contacts}
+          journeys={dynamicMode ? journeys : undefined}
           onBack={pop}
           onOpenTask={(id) => push({ type: "task", taskId: id })}
           bn={isBn}
