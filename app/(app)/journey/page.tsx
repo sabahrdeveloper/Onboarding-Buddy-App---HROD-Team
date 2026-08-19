@@ -47,7 +47,7 @@ export default async function JourneyPage() {
   return (
     <div>
       <div className="mb-4 mt-1.5">
-        <div className="font-en text-xl font-bold leading-tight text-text">30 · 60 · 90 · 180 Journey</div>
+        <div className="font-en text-xl font-bold leading-tight text-text">৩০ · ৬০ · ৯০ · ১৮০ জার্নি</div>
         <div className="mt-1 text-sm font-medium leading-snug text-muted">
           আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা
         </div>

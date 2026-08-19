@@ -26,19 +26,19 @@ export function HrServicesGrid({ managerPhone, buddyPhone, buddyAssigned, showEm
   const { openContact, notify } = useOverlay();
 
   const HR_SERVICES: HrService[] = [
-    { key: "hr", label: "HR", sub: "Human Resources", icon: "users" },
-    { key: "it", label: "IT Support", sub: "System access", icon: "monitor" },
-    { key: "manager", label: "Manager", sub: managerPhone || "Team lead", icon: "briefcase" },
-    { key: "buddy", label: "Buddy", sub: buddyAssigned ? buddyPhone || "Mentor" : "Not assigned yet", icon: "userCheck" },
-    { key: "helpCalls", label: "Help Calls", sub: "Your submitted tickets", icon: "ticket", blue: true, href: "/help-calls" },
+    { key: "hr", label: "HR", sub: "মানব সম্পদ বিভাগ", icon: "users" },
+    { key: "it", label: "IT সাপোর্ট", sub: "সিস্টেম অ্যাক্সেস", icon: "monitor" },
+    { key: "manager", label: "ম্যানেজার", sub: managerPhone || "টিম লিড", icon: "briefcase" },
+    { key: "buddy", label: "বাডি", sub: buddyAssigned ? buddyPhone || "মেন্টর" : "এখনো নির্ধারণ হয়নি", icon: "userCheck" },
+    { key: "helpCalls", label: "হেল্প কল", sub: "আপনার জমা দেওয়া টিকেট", icon: "ticket", blue: true, href: "/help-calls" },
     showEmployeesCard
-      ? { key: "employees", label: "Employees", sub: "View onboarding roster", icon: "briefcase", blue: true, href: "/employees" }
-      : { key: "assistant", label: "AI Assistant", sub: "Ask anything", icon: "chat", blue: true, href: "/assistant" },
+      ? { key: "employees", label: "কর্মীরা", sub: "অনবোর্ডিং তালিকা দেখুন", icon: "briefcase", blue: true, href: "/employees" }
+      : { key: "assistant", label: "AI সহকারী", sub: "যা খুশি জিজ্ঞাসা করুন", icon: "chat", blue: true, href: "/assistant" },
   ];
 
   function handleClick(key: string) {
     if (key === "buddy" && !buddyAssigned) {
-      notify("Your Buddy will soon be assigned by your Manager", "userCheck");
+      notify("আপনার ম্যানেজার শীঘ্রই আপনার বাডি নির্ধারণ করবেন", "userCheck");
       return;
     }
     openContact(key);
