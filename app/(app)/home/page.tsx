@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Mascot } from "@/components/mascot/Mascot";
 import { MilestoneCard, GrowthMilestoneCard } from "@/components/journey/MilestoneCard";
 import { ContinueJourneyButton } from "@/components/journey/ContinueJourneyButton";
@@ -7,6 +8,8 @@ import { Icon } from "@/components/icons/Icon";
 import {
   getEmployee,
   getEmployeeAssessments,
+  getEmployeeVariant,
+  getIsHrAdmin,
   getMilestoneAssessments,
   getProfile,
   getTaskStatuses,
@@ -16,15 +19,25 @@ import { currentPhase, daysRemainingInPhase, growthReviewUnlocked, progressPerce
 import { PHASE_META, GROWTH_PHASE_META, type PhaseKey } from "@/lib/types";
 
 export default async function HomePage() {
-  const [{ data: profile }, { data: employee }, { data: tasks }, { data: statuses }, { data: assessments }, { data: milestoneAssessments }] =
-    await Promise.all([
-      getProfile(),
-      getEmployee(),
-      getTasks(),
-      getTaskStatuses(),
-      getEmployeeAssessments(),
-      getMilestoneAssessments(),
-    ]);
+  const [
+    { data: profile },
+    { data: employee },
+    { data: tasks },
+    { data: statuses },
+    { data: assessments },
+    { data: milestoneAssessments },
+    variant,
+    isHrAdmin,
+  ] = await Promise.all([
+    getProfile(),
+    getEmployee(),
+    getTasks(),
+    getTaskStatuses(),
+    getEmployeeAssessments(),
+    getMilestoneAssessments(),
+    getEmployeeVariant(),
+    getIsHrAdmin(),
+  ]);
 
   const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
   const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
@@ -75,6 +88,11 @@ export default async function HomePage() {
 
   return (
     <div>
+      {variant.logoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element -- variant logo path is DB-driven, not a static import next/image can optimize at build time
+        <img src={variant.logoUrl} alt={variant.name} className="mb-3 h-8 w-auto object-contain object-left" />
+      )}
+
       <div className="mb-4 mt-0.5">
         <div className="font-en text-xl font-bold leading-tight text-text">
           আসসালামু আলাইকুম, <b>{firstName}</b>
@@ -135,6 +153,23 @@ export default async function HomePage() {
 
       <ContinueJourneyButton currentPhase={phase} />
       <ViewWorkListButton variant="primary" />
+
+      {isHrAdmin && (
+        <div className="mt-3 flex gap-3">
+          <Link
+            href="/admin/tasks/new"
+            className="flex-1 rounded-button bg-green px-4 py-3.5 text-center font-en text-sm font-bold text-white"
+          >
+            + Add Task
+          </Link>
+          <Link
+            href="/admin/resources/new"
+            className="flex-1 rounded-button bg-green px-4 py-3.5 text-center font-en text-sm font-bold text-white"
+          >
+            + Add Resource
+          </Link>
+        </div>
+      )}
 
       <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">HR Services</div>
       <HrServicesGrid
