@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { createClient } from "@/lib/supabase/server";
-import { getEmployee, getEmployeeVariant, getHomeVariant, getProfile, getTaskStatuses, getTasks } from "@/lib/data/queries";
+import {
+  getEmployee,
+  getEmployeeVariant,
+  getHomeVariant,
+  getMySubmittedAssessmentJourneyIds,
+  getPhasesForVariant,
+  getProfile,
+  getTaskStatuses,
+  getTasks,
+} from "@/lib/data/queries";
 import { signOut } from "@/actions/sign-out";
 import { linkGoogleAccount } from "@/actions/auth";
 import { currentPhase, progressPercent } from "@/lib/business-rules";
@@ -36,51 +45,82 @@ export default async function ProfilePage() {
 
   const doneTaskIds = new Set((statuses ?? []).filter((s) => s.done).map((s) => s.task_id));
   const taskByWorkNumber = new Map((tasks ?? []).map((t) => [t.work_number, t]));
-  const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
-
-  const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
-    "30": { done: 0, total: 0 },
-    "60": { done: 0, total: 0 },
-    "90": { done: 0, total: 0 },
-  };
-  let completed = 0;
-  for (const t of tasks ?? []) {
-    const phase = phaseById.get(t.id);
-    if (!phase) continue;
-    doneByPhase[phase].total++;
-    if (doneTaskIds.has(t.id)) {
-      doneByPhase[phase].done++;
-      completed++;
-    }
-  }
-  const total = tasks?.length ?? 50;
-  const pct = progressPercent(completed);
-  const phase = currentPhase(doneByPhase);
-  const phaseLabel = phase === "180" ? growthMeta.title : phaseMeta[phase].title;
 
   const isDone = (workNumber: number) => {
     const task = taskByWorkNumber.get(workNumber);
     return task ? doneTaskIds.has(task.id) : false;
   };
 
+  let completed = 0;
+  let total = 0;
+  let pct = 0;
+  let phaseLabel = "";
   // Lightweight computed-on-read badge unlock rules (BR-019 — motivational only, not persisted).
   // The first five badges are tied to specific default-variant work numbers
   // (e.g. work #1 = "first day ready") — meaningless against another
   // variant's own, differently-numbered task list, so they're only ever
-  // computed for the default variant. Phase-completion badges below are
-  // generic (based on totals, not specific work numbers) and apply to any
-  // variant.
+  // computed for the default variant.
   const earnedByKey: Record<string, boolean> = {
     first_day_ready: variant.isDefault && isDone(1),
     system_access_hero: variant.isDefault && isDone(2),
     policy_learner: variant.isDefault && isDone(5),
     team_connector: variant.isDefault && isDone(3),
     kpi_starter: variant.isDefault && isDone(12),
-    "30_days_champion": doneByPhase["30"].total > 0 && doneByPhase["30"].done === doneByPhase["30"].total,
-    "60_days_contributor": doneByPhase["60"].total > 0 && doneByPhase["60"].done === doneByPhase["60"].total,
-    "90_days_ready": doneByPhase["90"].total > 0 && doneByPhase["90"].done === doneByPhase["90"].total,
-    "180_days_growth_ready": completed === total && total > 0,
+    "30_days_champion": false,
+    "60_days_contributor": false,
+    "90_days_ready": false,
+    "180_days_growth_ready": false,
   };
+
+  if (variant.isDefault) {
+    const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
+    const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
+      "30": { done: 0, total: 0 },
+      "60": { done: 0, total: 0 },
+      "90": { done: 0, total: 0 },
+    };
+    for (const t of tasks ?? []) {
+      const phase = phaseById.get(t.id);
+      if (!phase) continue;
+      doneByPhase[phase].total++;
+      if (doneTaskIds.has(t.id)) {
+        doneByPhase[phase].done++;
+        completed++;
+      }
+    }
+    total = tasks?.length ?? 50;
+    pct = progressPercent(completed);
+    const phase = currentPhase(doneByPhase);
+    phaseLabel = phase === "180" ? growthMeta.title : phaseMeta[phase].title;
+    earnedByKey["30_days_champion"] = doneByPhase["30"].total > 0 && doneByPhase["30"].done === doneByPhase["30"].total;
+    earnedByKey["60_days_contributor"] = doneByPhase["60"].total > 0 && doneByPhase["60"].done === doneByPhase["60"].total;
+    earnedByKey["90_days_ready"] = doneByPhase["90"].total > 0 && doneByPhase["90"].done === doneByPhase["90"].total;
+    earnedByKey["180_days_growth_ready"] = completed === total && total > 0;
+  } else {
+    const [{ data: journeys }, submittedJourneyIds] = await Promise.all([
+      getPhasesForVariant(variant.id, { activeOnly: true }),
+      getMySubmittedAssessmentJourneyIds(),
+    ]);
+    const activeTasks = (tasks ?? []).filter((t) => t.active);
+    const doneByJourney = new Map((journeys ?? []).map((j) => [j.id, { done: 0, total: 0 }]));
+    for (const t of activeTasks) {
+      const counts = doneByJourney.get(t.phase);
+      if (!counts) continue;
+      counts.total++;
+      if (doneTaskIds.has(t.id)) {
+        counts.done++;
+        completed++;
+      }
+    }
+    total = activeTasks.length;
+    pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const currentJourney = (journeys ?? []).find((j) => {
+      const counts = doneByJourney.get(j.id);
+      if (!counts) return false;
+      return counts.done < counts.total || !submittedJourneyIds.has(j.id);
+    });
+    phaseLabel = currentJourney?.name ?? (isBn ? "সম্পন্ন" : "Complete");
+  }
 
   const badges: BadgeDef[] = (badgeDefs ?? [])
     .filter((b) => b.variant_id === variant.id)
