@@ -1,18 +1,15 @@
+import Link from "next/link";
 import { MilestoneCard, GrowthMilestoneCard } from "@/components/journey/MilestoneCard";
 import { ViewWorkListButton } from "@/components/journey/ViewWorkListButton";
-import { getEmployeeAssessments, getMilestoneAssessments, getTaskStatuses, getTasks } from "@/lib/data/queries";
+import { getEmployeeAssessments, getIsHrAdmin, getMilestoneAssessments, getTaskStatuses, getTasks } from "@/lib/data/queries";
 import { growthReviewUnlocked } from "@/lib/business-rules";
 import { PHASE_META, GROWTH_PHASE_META, type PhaseKey } from "@/lib/types";
 
 const PHASE_KEYS: PhaseKey[] = ["30", "60", "90"];
 
 export default async function JourneyPage() {
-  const [{ data: tasks }, { data: statuses }, { data: assessments }, { data: milestoneAssessments }] = await Promise.all([
-    getTasks(),
-    getTaskStatuses(),
-    getEmployeeAssessments(),
-    getMilestoneAssessments(),
-  ]);
+  const [{ data: tasks }, { data: statuses }, { data: assessments }, { data: milestoneAssessments }, isHrAdmin] =
+    await Promise.all([getTasks(), getTaskStatuses(), getEmployeeAssessments(), getMilestoneAssessments(), getIsHrAdmin()]);
 
   const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
   const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
@@ -46,11 +43,21 @@ export default async function JourneyPage() {
 
   return (
     <div>
-      <div className="mb-4 mt-1.5">
-        <div className="font-en text-xl font-bold leading-tight text-text">30 · 60 · 90 · 180 Journey</div>
-        <div className="mt-1 text-sm font-medium leading-snug text-muted">
-          আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা
+      <div className="mb-4 mt-1.5 flex items-start justify-between gap-3">
+        <div>
+          <div className="font-en text-xl font-bold leading-tight text-text">30 · 60 · 90 · 180 Journey</div>
+          <div className="mt-1 text-sm font-medium leading-snug text-muted">
+            আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা
+          </div>
         </div>
+        {isHrAdmin && (
+          <Link
+            href="/admin/tasks/new"
+            className="shrink-0 whitespace-nowrap rounded-lg bg-green px-3 py-1.5 font-en text-[13px] font-bold text-white"
+          >
+            + Add Task
+          </Link>
+        )}
       </div>
 
       <ViewWorkListButton />

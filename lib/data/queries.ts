@@ -85,6 +85,16 @@ export const getMilestoneAssessments = cache(async () => {
   return supabase.from("milestone_assessments").select("milestone, submitted_at");
 });
 
+export const getIsHrAdmin = cache(async () => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await getAuthUser();
+  if (!user) return false;
+  const { data } = await supabase.from("profiles").select("is_hr_admin").eq("id", user.id).single();
+  return Boolean(data?.is_hr_admin);
+});
+
 export const getIsSuperAdmin = cache(async () => {
   const supabase = await createClient();
   const {
