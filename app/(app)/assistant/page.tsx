@@ -1,5 +1,13 @@
+import { redirect } from "next/navigation";
 import { ChatClient } from "@/components/assistant/ChatClient";
+import { getAdminVariantId } from "@/lib/data/queries";
 
-export default function AssistantPage() {
+export default async function AssistantPage() {
+  // AI Assistant is not part of a variant-scoped HR admin's experience —
+  // their nav has no tab pointing here either, see BottomNav's
+  // showEmployeesTab.
+  const adminVariantId = await getAdminVariantId();
+  if (adminVariantId) redirect("/employees");
+
   return <ChatClient />;
 }
