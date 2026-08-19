@@ -93,23 +93,23 @@ export default async function ProfilePage() {
   const roleLine = [employee?.designation, employee?.department].filter(Boolean).join(" · ");
 
   const details: [string, string][] = [
-    ["নাম", name || "—"],
-    ["এনরোল নম্বর", profile?.enroll_number ?? "—"],
+    ["Employee Name", name || "—"],
+    ["Enroll Number", profile?.enroll_number ?? "—"],
     ["SBU", employee?.sbu ?? "—"],
-    ["বিভাগ", employee?.department ?? "—"],
-    ["পদবী", employee?.designation ?? "—"],
-    ["জয়েনিং তারিখ", employee?.joining_date ?? "—"],
-    ["রিপোর্টিং ম্যানেজার", employee?.reporting_manager ?? "—"],
-    ["ম্যানেজার ফোন", employee?.reporting_manager_phone ?? "—"],
-    ["ম্যানেজার ইমেইল", employee?.reporting_manager_email ?? "—"],
+    ["Department", employee?.department ?? "—"],
+    ["Designation", employee?.designation ?? "—"],
+    ["Joining Date", employee?.joining_date ?? "—"],
+    ["Reporting Manager", employee?.reporting_manager ?? "—"],
+    ["Manager Phone", employee?.reporting_manager_phone ?? "—"],
+    ["Manager Email", employee?.reporting_manager_email ?? "—"],
     ...(employee?.buddy
       ? ([
-          ["বাডি", employee.buddy],
-          ["বাডি ফোন", employee?.buddy_phone ?? "—"],
-          ["বাডি ইমেইল", employee?.buddy_email ?? "—"],
+          ["Buddy", employee.buddy],
+          ["Buddy Phone", employee?.buddy_phone ?? "—"],
+          ["Buddy Email", employee?.buddy_email ?? "—"],
         ] as [string, string][])
-      : ([["বাডি", "আপনার ম্যানেজার শীঘ্রই বাডি নির্ধারণ করবেন"]] as [string, string][])),
-    ["ইমেইল", employee?.email ?? "—"],
+      : ([["Buddy", "Your Buddy will soon be assigned by your Manager"]] as [string, string][])),
+    ["Email", employee?.email ?? "—"],
   ];
 
   return (
@@ -127,23 +127,23 @@ export default async function ProfilePage() {
           <div className="font-en text-xl font-extrabold text-green-dark">
             {completed}/{total}
           </div>
-          <div className="mt-[3px] text-xs font-semibold text-muted">সম্পন্ন কাজ</div>
+          <div className="mt-[3px] text-xs font-semibold text-muted">Completed works</div>
         </div>
         <div className="rounded-2xl border border-line bg-card p-4 shadow-card">
           <div className="font-en text-xl font-extrabold text-warn-tx">{total - completed}</div>
-          <div className="mt-[3px] text-xs font-semibold text-muted">বাকি কাজ</div>
+          <div className="mt-[3px] text-xs font-semibold text-muted">Pending works</div>
         </div>
         <div className="rounded-2xl border border-line bg-card p-4 shadow-card">
           <div className="font-en text-xl font-extrabold text-blue-dark">{pct}%</div>
-          <div className="mt-[3px] text-xs font-semibold text-muted">১৮০-দিনের অগ্রগতি</div>
+          <div className="mt-[3px] text-xs font-semibold text-muted">180-day progress</div>
         </div>
         <div className="rounded-2xl border border-line bg-card p-4 shadow-card">
           <div className="font-en text-[15px] font-extrabold text-text">{phaseLabel}</div>
-          <div className="mt-[3px] text-xs font-semibold text-muted">বর্তমান পর্যায়</div>
+          <div className="mt-[3px] text-xs font-semibold text-muted">Current phase</div>
         </div>
       </div>
 
-      <div className="mb-3 font-en text-[15px] font-bold text-text">অনবোর্ডিং ব্যাজ</div>
+      <div className="mb-3 font-en text-[15px] font-bold text-text">Onboarding Badges</div>
       <div className="mb-1 flex gap-2.5 overflow-x-auto pb-1.5">
         {badges.map((b) => (
           <div
@@ -164,7 +164,7 @@ export default async function ProfilePage() {
         ))}
       </div>
 
-      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">কর্মী বিবরণ</div>
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Employee Details</div>
       <div className="rounded-card border border-line bg-card px-4 shadow-card">
         {details.map(([label, value], i) => (
           <div
@@ -186,7 +186,7 @@ export default async function ProfilePage() {
             className="flex w-full items-center justify-center gap-2.5 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-text transition-transform active:scale-[0.98]"
           >
             <Icon name="paperclip" size={16} />
-            Google অ্যাকাউন্ট যুক্ত করুন
+            Link Google Account
           </button>
         </form>
       )}
@@ -197,7 +197,7 @@ export default async function ProfilePage() {
           className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-text transition-transform active:scale-[0.98]"
         >
           <Icon name="map" size={16} />
-          অনবোর্ডিং মডিউল পরিবর্তন করুন
+          Change Onboarding Module
         </Link>
       )}
 
@@ -207,7 +207,7 @@ export default async function ProfilePage() {
           className="flex w-full items-center justify-center gap-2 rounded-button border border-[#f1b4b6] bg-err-bg px-4 py-3.5 font-en text-sm font-bold text-err-tx transition-transform active:scale-[0.98]"
         >
           <Icon name="logOut" size={16} />
-          সাইন আউট
+          Sign Out
         </button>
       </form>
     </div>

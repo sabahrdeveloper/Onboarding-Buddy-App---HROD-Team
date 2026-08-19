@@ -70,16 +70,16 @@ export default async function SelectOnboardingPage() {
         <img src={homeVariant.logoUrl} alt={homeVariant.name} className="mb-8 h-10 w-auto object-contain" />
       )}
 
-      <div className="mb-2 text-center font-en text-lg font-bold text-text">আপনার অনবোর্ডিং বেছে নিন</div>
+      <div className="mb-2 text-center font-en text-lg font-bold text-text">Choose Your Onboarding</div>
       <p className="mb-8 text-center text-sm font-medium text-muted">
-        আপনি {homeVariant.name}-এর জন্য দুটি অনবোর্ডিং মডিউল থেকে বেছে নিতে পারেন।
+        আপনি {homeVariant.name}-এর জন্য দুটি onboarding module থেকে বেছে নিতে পারেন।
       </p>
 
       <form action={chooseOnboardingTrack} className="flex w-full flex-col gap-4">
         <TrackButton
           track="org"
           title="Organization Onboarding"
-          subtitle="নিয়মিত কোম্পানি-ব্যাপী অনবোর্ডিং"
+          subtitle="Regular company-wide onboarding"
           done={orgDone}
           total={orgTotal}
           mascot={<Mascot variant="color" mood="happy" />}
@@ -87,7 +87,7 @@ export default async function SelectOnboardingPage() {
         <TrackButton
           track="sales"
           title="Sales Onboarding"
-          subtitle={`${homeVariant.name}-এর জন্য নির্দিষ্ট অনবোর্ডিং`}
+          subtitle={`${homeVariant.name}-specific onboarding`}
           done={salesDone}
           total={salesTotal}
           mascot={<SalesMascot />}
@@ -128,7 +128,7 @@ function TrackButton({
           <div className="h-full rounded-lg bg-green" style={{ width: `${pct}%` }} />
         </div>
         <div className="mt-1 text-[11px] font-semibold text-muted">
-          {done}/{total} কাজ · {pct}%
+          {done}/{total} works · {pct}%
         </div>
       </div>
     </button>

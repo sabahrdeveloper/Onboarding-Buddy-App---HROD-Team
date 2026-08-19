@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons/Icon";
 
 const BASE_ITEMS: { href: string; label: string; icon: IconName }[] = [
-  { href: "/home", label: "হোম", icon: "home" },
-  { href: "/journey", label: "জার্নি", icon: "map" },
+  { href: "/home", label: "Home", icon: "home" },
+  { href: "/journey", label: "Journey", icon: "map" },
   { href: "/kpi", label: "KPI", icon: "trending" },
-  { href: "/assistant", label: "AI সহকারী", icon: "assistantNav" },
-  { href: "/profile", label: "প্রোফাইল", icon: "user" },
+  { href: "/assistant", label: "AI Assistant", icon: "assistantNav" },
+  { href: "/profile", label: "Profile", icon: "user" },
 ];
 
 interface BottomNavProps {
@@ -33,18 +33,18 @@ export function BottomNav({ showTeamTab, navMode = "kpi", showEmployeesTab }: Bo
   let baseItems =
     navMode === "resources"
       ? BASE_ITEMS.map((item) =>
-          item.href === "/kpi" ? { href: "/resources", label: "রিসোর্স", icon: "book" as IconName } : item,
+          item.href === "/kpi" ? { href: "/resources", label: "Resources", icon: "book" as IconName } : item,
         )
       : BASE_ITEMS;
 
   if (showEmployeesTab) {
     baseItems = baseItems.map((item) =>
-      item.href === "/assistant" ? { href: "/employees", label: "কর্মীরা", icon: "briefcase" as IconName } : item,
+      item.href === "/assistant" ? { href: "/employees", label: "Employees", icon: "briefcase" as IconName } : item,
     );
   }
 
   const items = showTeamTab
-    ? [...baseItems.slice(0, 2), { href: "/team", label: "টিম", icon: "users" as IconName }, ...baseItems.slice(2)]
+    ? [...baseItems.slice(0, 2), { href: "/team", label: "Team", icon: "users" as IconName }, ...baseItems.slice(2)]
     : baseItems;
 
   return (

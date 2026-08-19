@@ -35,8 +35,8 @@ function dateSectionLabel(iso: string): string {
   yesterday.setDate(today.getDate() - 1);
   const isSameDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  if (isSameDay(date, today)) return "আজ";
-  if (isSameDay(date, yesterday)) return "গতকাল";
+  if (isSameDay(date, today)) return "Today";
+  if (isSameDay(date, yesterday)) return "Yesterday";
   return formatMonthDate(iso);
 }
 
@@ -91,7 +91,7 @@ export function NotificationsList({ notifications, markOneAction, markAllAction 
               tab === "all" ? "bg-green text-white" : "bg-card text-muted border border-line"
             }`}
           >
-            সব
+            All
           </button>
           <button
             onClick={() => setTab("unread")}
@@ -99,7 +99,7 @@ export function NotificationsList({ notifications, markOneAction, markAllAction 
               tab === "unread" ? "bg-green text-white" : "bg-card text-muted border border-line"
             }`}
           >
-            অপঠিত
+            Unread
             {unreadCount > 0 && (
               <span className="rounded-full bg-err-tx px-1.5 py-0.5 font-en text-[10px] font-bold text-white">
                 {unreadCount}
@@ -109,7 +109,7 @@ export function NotificationsList({ notifications, markOneAction, markAllAction 
         </div>
         {unreadCount > 0 && (
           <button onClick={handleMarkAllRead} disabled={isPending} className="font-en text-[11.5px] font-bold text-green-dark">
-            সব পঠিত করুন
+            Mark all read
           </button>
         )}
       </div>

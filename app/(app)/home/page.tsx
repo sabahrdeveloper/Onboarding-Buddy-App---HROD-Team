@@ -22,7 +22,6 @@ import {
   getUnreadNotificationCount,
 } from "@/lib/data/queries";
 import { ONBOARDING_TRACK_COOKIE, isOnboardingTrack } from "@/lib/onboarding-track";
-import { bn } from "@/lib/bn";
 import { currentPhase, daysRemainingInPhase, growthReviewUnlocked, progressPercent } from "@/lib/business-rules";
 import { PHASE_META, GROWTH_PHASE_META, type PhaseKey } from "@/lib/types";
 
@@ -106,10 +105,10 @@ export default async function HomePage() {
 
   const reminderText =
     phase === "180"
-      ? "অভিনন্দন! আপনি আপনার ৯০ দিনের checklist সম্পন্ন করেছেন। এবার আপনার ১৮০ দিনের Growth Review সম্পন্ন করুন।"
+      ? "Dear Employee, congratulations on finishing your 90-day checklist! Please complete your 180 Days Growth Review next."
       : (() => {
           const daysLeft = daysRemainingInPhase(phase, employee?.joining_date ?? null);
-          return `আপনার বাকি ${bn(Number(phase))} দিনের কাজ ${bn(daysLeft)} দিনের মধ্যে সম্পন্ন করুন।`;
+          return `Dear Employee, please complete your remaining ${phase} days task within ${daysLeft} day${daysLeft === 1 ? "" : "s"}.`;
         })();
 
   return (
@@ -133,16 +132,16 @@ export default async function HomePage() {
 
       <div className="mb-3 rounded-card border border-line bg-card p-4 shadow-card">
         <div className="flex items-baseline justify-between">
-          <span className="font-en text-[15px] font-semibold text-text">সামগ্রিক অনবোর্ডিং অগ্রগতি</span>
+          <span className="font-en text-[15px] font-semibold text-text">Overall Onboarding Progress</span>
           <span className="font-en text-xl font-extrabold text-green-dark">{pct}%</span>
         </div>
         <div className="my-3 h-2.5 overflow-hidden rounded-lg bg-[#edeff2]">
           <div className="h-full rounded-lg bg-green transition-[width]" style={{ width: `${pct}%` }} />
         </div>
         <div className="text-[12.5px] font-medium text-muted">
-          বর্তমান পর্যায়: <b className="font-bold text-text">{phaseTitle}</b> ·{" "}
+          Current Phase: <b className="font-bold text-text">{phaseTitle}</b> ·{" "}
           <span>
-            {bn(completed)}/{bn(total)} কাজ
+            {completed}/{total} works
           </span>
         </div>
       </div>
@@ -154,12 +153,12 @@ export default async function HomePage() {
 
       <div className="mb-3.5 grid grid-cols-2 gap-3">
         <div className="rounded-card border border-line bg-card p-3.5 px-4 shadow-card">
-          <div className="font-en text-[22px] font-extrabold text-green-dark">{bn(completed)}</div>
-          <div className="mt-0.5 text-xs font-semibold text-muted">সম্পন্ন কাজ</div>
+          <div className="font-en text-[22px] font-extrabold text-green-dark">{completed}</div>
+          <div className="mt-0.5 text-xs font-semibold text-muted">Completed works</div>
         </div>
         <div className="rounded-card border border-line bg-card p-3.5 px-4 shadow-card">
-          <div className="font-en text-[22px] font-extrabold text-warn-tx">{bn(total - completed)}</div>
-          <div className="mt-0.5 text-xs font-semibold text-muted">বাকি কাজ</div>
+          <div className="font-en text-[22px] font-extrabold text-warn-tx">{total - completed}</div>
+          <div className="mt-0.5 text-xs font-semibold text-muted">Pending works</div>
         </div>
       </div>
 
@@ -171,7 +170,7 @@ export default async function HomePage() {
           <div className="mb-[3px] flex flex-wrap items-center gap-1.5 font-en text-[15px] font-extrabold text-green-dark">
             OnboardingBuddy{" "}
             <span className="whitespace-nowrap rounded-lg border border-[#cde9d5] bg-white px-1.5 py-0.5 font-en text-[9.5px] font-bold uppercase tracking-[0.04em] text-green-dark">
-              AI গাইড
+              AI Guide
             </span>
           </div>
           <p className="text-[12.5px] font-medium leading-snug text-text">
@@ -189,13 +188,13 @@ export default async function HomePage() {
             href="/admin/tasks/new"
             className="flex-1 rounded-button bg-green px-4 py-3.5 text-center font-en text-sm font-bold text-white"
           >
-            + টাস্ক যোগ করুন
+            + Add Task
           </Link>
           <Link
             href="/admin/resources/new"
             className="flex-1 rounded-button bg-green px-4 py-3.5 text-center font-en text-sm font-bold text-white"
           >
-            + রিসোর্স যোগ করুন
+            + Add Resource
           </Link>
         </div>
       )}
@@ -205,11 +204,11 @@ export default async function HomePage() {
           href="/admin/notifications"
           className="mt-3 block rounded-button border border-line bg-card px-4 py-3.5 text-center font-en text-sm font-bold text-text"
         >
-          নোটিফিকেশন পাঠান
+          Push Notification
         </Link>
       )}
 
-      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">HR সেবা</div>
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">HR Services</div>
       <HrServicesGrid
         managerPhone={employee?.reporting_manager_phone}
         buddyPhone={employee?.buddy_phone}
@@ -217,7 +216,7 @@ export default async function HomePage() {
         showEmployeesCard={Boolean(adminVariantId)}
       />
 
-      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">বর্তমান মাইলফলক</div>
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Current Milestone</div>
       {milestone ? (
         <MilestoneCard phase={milestone} />
       ) : (

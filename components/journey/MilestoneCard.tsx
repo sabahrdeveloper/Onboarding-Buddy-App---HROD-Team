@@ -48,15 +48,15 @@ export function MilestoneCard({ phase }: { phase: JourneyPhase }) {
       <div className="mb-2.5 mt-0.5 flex gap-[22px]">
         <div className="text-xs font-semibold text-muted">
           <b className="block font-en text-base font-extrabold leading-tight text-text">{bn(phase.totalTasks)}</b>
-          মোট
+          Total
         </div>
         <div className="text-xs font-semibold text-muted">
           <b className="block font-en text-base font-extrabold leading-tight text-green-dark">{bn(phase.doneTasks)}</b>
-          সম্পন্ন
+          Completed
         </div>
         <div className="text-xs font-semibold text-muted">
           <b className="block font-en text-base font-extrabold leading-tight text-warn-tx">{bn(pending)}</b>
-          বাকি
+          Pending
         </div>
       </div>
 
@@ -66,17 +66,17 @@ export function MilestoneCard({ phase }: { phase: JourneyPhase }) {
 
       <div className="mt-3 flex items-center justify-between gap-2.5">
         {complete ? (
-          <StatusPill tone="done">সম্পন্ন</StatusPill>
+          <StatusPill tone="done">Completed</StatusPill>
         ) : inProgress ? (
-          <StatusPill tone="prog">চলমান</StatusPill>
+          <StatusPill tone="prog">In Progress</StatusPill>
         ) : (
-          <StatusPill tone="lock">শুরু হয়নি</StatusPill>
+          <StatusPill tone="lock">Not started</StatusPill>
         )}
         <button
           onClick={() => openPhase(phase.key)}
           className="flex items-center gap-1.5 rounded-xl bg-green px-[18px] py-[11px] font-en text-[13px] font-bold text-white transition-transform active:scale-[0.98]"
         >
-          {inProgress ? "চালিয়ে যান" : complete ? "রিভিউ" : "শুরু করুন"}
+          {inProgress ? "Continue" : complete ? "Review" : "Start"}
           <Icon name="arrowRight" size={15} />
         </button>
       </div>
@@ -103,18 +103,18 @@ export function GrowthMilestoneCard({ phase }: { phase: GrowthPhase }) {
       </div>
 
       <div className="mb-1 text-[12.5px] font-medium text-muted">
-        {bn(phase.reviewItemCount)}টি প্রশ্ন · ৯০ দিনের পর শুরু
+        {bn(phase.reviewItemCount)}টি growth review item · ৯০ দিনের পর শুরু
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2.5">
-        <StatusPill tone={phase.unlocked ? "prog" : "lock"}>{phase.unlocked ? "আনলকড" : "লকড"}</StatusPill>
+        <StatusPill tone={phase.unlocked ? "prog" : "lock"}>{phase.unlocked ? "Unlocked" : "Locked"}</StatusPill>
         <button
           onClick={openGrowth}
           className={`flex items-center gap-1.5 rounded-xl px-[18px] py-[11px] font-en text-[13px] font-bold text-white transition-transform active:scale-[0.98] ${
             phase.unlocked ? "bg-green" : "bg-[#9aa1ab]"
           }`}
         >
-          {phase.unlocked ? "রিভিউ শুরু করুন" : "প্রিভিউ"}
+          {phase.unlocked ? "Start Review" : "Preview"}
           <Icon name="arrowRight" size={15} />
         </button>
       </div>

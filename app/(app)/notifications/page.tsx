@@ -30,7 +30,7 @@ export default async function NotificationsPage() {
     <div>
       <div className="mb-4 mt-0.5 flex items-center gap-3">
         <BackButton fallbackHref="/home" />
-        <div className="font-en text-lg font-extrabold text-text">নোটিফিকেশন</div>
+        <div className="font-en text-lg font-extrabold text-text">Notifications</div>
       </div>
 
       <NotificationsList notifications={rows} markOneAction={markNotificationRead} markAllAction={markAllNotificationsRead} />
