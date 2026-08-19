@@ -49,11 +49,15 @@ export function BottomNav({ showTeamTab, navMode = "kpi", showEmployeesTab }: Bo
     : BASE_ITEMS;
 
   if (showEmployeesTab) {
-    baseItems = baseItems.map((item) =>
-      item.href === "/assistant"
-        ? { href: "/employees", label: isBn ? "কর্মীরা" : "Employees", icon: "briefcase" as IconName }
-        : item,
-    );
+    baseItems = baseItems.map((item) => {
+      if (item.href === "/assistant") {
+        return { href: "/employees", label: isBn ? "কর্মীরা" : "Employees", icon: "briefcase" as IconName };
+      }
+      if (item.href === "/resources") {
+        return { href: "/admin/tasks", label: isBn ? "HR অ্যাডমিন প্যানেল" : "HR Admin Panel", icon: "lock" as IconName };
+      }
+      return item;
+    });
   }
 
   const items = showTeamTab
