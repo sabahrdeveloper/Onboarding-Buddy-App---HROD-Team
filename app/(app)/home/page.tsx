@@ -122,7 +122,7 @@ export default async function HomePage() {
     <div>
       {variant.logoUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- variant logo path is DB-driven, not a static import next/image can optimize at build time
-        <img src={variant.logoUrl} alt={variant.name} className="mb-3 h-8 w-auto object-contain object-left" />
+        <img src={variant.logoUrl} alt={variant.name} className="mb-5 mt-2 h-8 w-auto object-contain object-left" />
       )}
 
       <div className="mb-4 mt-0.5 flex items-start justify-between gap-3">
