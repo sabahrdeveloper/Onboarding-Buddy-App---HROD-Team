@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
+  getAdminVariantId,
   getAuthUser,
   getEmployee,
   getEmployeeAssessments,
@@ -44,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { data: milestoneAssessmentsData },
     { data: sbuAssignmentsData },
     { data: isManagerData },
+    adminVariantId,
   ] = await Promise.all([
     getProfile(),
     getEmployee(),
@@ -54,6 +56,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getMilestoneAssessments(),
     supabase.from("sbu_hr_assignments").select("*"),
     supabase.rpc("is_manager"),
+    getAdminVariantId(),
   ]);
 
   // Assessment/milestone templates depend on the variant just resolved above,
@@ -215,7 +218,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     >
       <div className="flex min-h-full flex-col" style={themeVars}>
         <div className="flex-1 px-4 pb-5 pt-1">{children}</div>
-        <BottomNav showTeamTab={Boolean(isManagerData)} navMode={variant.navMode} />
+        <BottomNav
+          showTeamTab={Boolean(isManagerData)}
+          navMode={variant.navMode}
+          showEmployeesTab={Boolean(adminVariantId)}
+        />
       </div>
     </OverlayProvider>
   );

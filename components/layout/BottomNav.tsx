@@ -17,21 +17,31 @@ interface BottomNavProps {
   /** Akij Light Engineering (and any future variant with nav_mode='resources')
    * has no KPI feature at all — its third tab is Resources instead. */
   navMode?: "kpi" | "resources";
+  /** A variant-scoped HR admin has no use for the AI Assistant — their
+   * fourth tab is the Employees roster instead. */
+  showEmployeesTab?: boolean;
 }
 
-export function BottomNav({ showTeamTab, navMode = "kpi" }: BottomNavProps) {
+export function BottomNav({ showTeamTab, navMode = "kpi", showEmployeesTab }: BottomNavProps) {
   const pathname = usePathname();
 
   // The Assistant screen replaces the bottom nav with its own fixed chat input bar,
-  // matching the prototype's chatInput/nav toggle behavior.
-  if (pathname.startsWith("/assistant")) return null;
+  // matching the prototype's chatInput/nav toggle behavior. Employees has no
+  // such special-case screen, so it keeps the normal nav.
+  if (pathname.startsWith("/assistant") && !showEmployeesTab) return null;
 
-  const baseItems =
+  let baseItems =
     navMode === "resources"
       ? BASE_ITEMS.map((item) =>
           item.href === "/kpi" ? { href: "/resources", label: "Resources", icon: "book" as IconName } : item,
         )
       : BASE_ITEMS;
+
+  if (showEmployeesTab) {
+    baseItems = baseItems.map((item) =>
+      item.href === "/assistant" ? { href: "/employees", label: "Employees", icon: "briefcase" as IconName } : item,
+    );
+  }
 
   const items = showTeamTab
     ? [...baseItems.slice(0, 2), { href: "/team", label: "Team", icon: "users" as IconName }, ...baseItems.slice(2)]

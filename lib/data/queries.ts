@@ -95,6 +95,16 @@ export const getIsHrAdmin = cache(async () => {
   return Boolean(data?.is_hr_admin);
 });
 
+export const getAdminVariantId = cache(async (): Promise<string | null> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await getAuthUser();
+  if (!user) return null;
+  const { data } = await supabase.from("profiles").select("is_hr_admin, admin_variant_id").eq("id", user.id).single();
+  return data?.is_hr_admin ? (data.admin_variant_id ?? null) : null;
+});
+
 export const getIsSuperAdmin = cache(async () => {
   const supabase = await createClient();
   const {
