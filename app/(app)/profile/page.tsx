@@ -1,6 +1,6 @@
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { createClient } from "@/lib/supabase/server";
-import { getEmployee, getProfile, getTaskStatuses, getTasks } from "@/lib/data/queries";
+import { getEmployee, getEmployeeVariant, getProfile, getTaskStatuses, getTasks } from "@/lib/data/queries";
 import { signOut } from "@/actions/sign-out";
 import { linkGoogleAccount } from "@/actions/auth";
 import { currentPhase, progressPercent } from "@/lib/business-rules";
@@ -16,7 +16,7 @@ interface BadgeDef {
 export default async function ProfilePage() {
   const supabase = await createClient();
 
-  const [{ data: profile }, { data: employee }, { data: tasks }, { data: statuses }, { data: badgeDefs }, { data: userData }] =
+  const [{ data: profile }, { data: employee }, { data: tasks }, { data: statuses }, { data: badgeDefs }, { data: userData }, variant] =
     await Promise.all([
       getProfile(),
       getEmployee(),
@@ -24,6 +24,7 @@ export default async function ProfilePage() {
       getTaskStatuses(),
       supabase.from("badges").select("*"),
       supabase.auth.getUser(),
+      getEmployeeVariant(),
     ]);
   const googleLinked = (userData.user?.identities ?? []).some((i) => i.provider === "google");
 
@@ -57,12 +58,18 @@ export default async function ProfilePage() {
   };
 
   // Lightweight computed-on-read badge unlock rules (BR-019 — motivational only, not persisted).
+  // The first five badges are tied to specific default-variant work numbers
+  // (e.g. work #1 = "first day ready") — meaningless against another
+  // variant's own, differently-numbered task list, so they're only ever
+  // computed for the default variant. Phase-completion badges below are
+  // generic (based on totals, not specific work numbers) and apply to any
+  // variant.
   const earnedByKey: Record<string, boolean> = {
-    first_day_ready: isDone(1),
-    system_access_hero: isDone(2),
-    policy_learner: isDone(5),
-    team_connector: isDone(3),
-    kpi_starter: isDone(12),
+    first_day_ready: variant.isDefault && isDone(1),
+    system_access_hero: variant.isDefault && isDone(2),
+    policy_learner: variant.isDefault && isDone(5),
+    team_connector: variant.isDefault && isDone(3),
+    kpi_starter: variant.isDefault && isDone(12),
     "30_days_champion": doneByPhase["30"].total > 0 && doneByPhase["30"].done === doneByPhase["30"].total,
     "60_days_contributor": doneByPhase["60"].total > 0 && doneByPhase["60"].done === doneByPhase["60"].total,
     "90_days_ready": doneByPhase["90"].total > 0 && doneByPhase["90"].done === doneByPhase["90"].total,
