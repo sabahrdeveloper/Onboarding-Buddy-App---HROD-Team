@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
   getAdminVariantId,
@@ -7,13 +6,11 @@ import {
   getEmployee,
   getEmployeeAssessments,
   getEmployeeVariant,
-  getHomeVariant,
   getMilestoneAssessments,
   getProfile,
   getTaskStatuses,
   getTasks,
 } from "@/lib/data/queries";
-import { ONBOARDING_TRACK_COOKIE, isOnboardingTrack } from "@/lib/onboarding-track";
 import { combineRole, findSbuAssignments, type SbuHrAssignment } from "@/lib/sbu-matching";
 import { buildCompanyWideContactLists } from "@/lib/contact-lists";
 import { BottomNav } from "@/components/layout/BottomNav";
@@ -36,18 +33,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) {
     redirect("/login");
-  }
-
-  // An employee whose home variant isn't the default (e.g. Akij Light
-  // Engineering) runs two onboarding tracks side by side and must pick one
-  // via /select-onboarding before reaching any (app) page — re-asked every
-  // login since signOut() clears this cookie. Default-variant employees
-  // never have a choice to make, so this never fires for them.
-  const homeVariant = await getHomeVariant();
-  if (!homeVariant.isDefault) {
-    const cookieStore = await cookies();
-    const track = cookieStore.get(ONBOARDING_TRACK_COOKIE)?.value;
-    if (!isOnboardingTrack(track)) redirect("/select-onboarding");
   }
 
   const [

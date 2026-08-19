@@ -10,9 +10,11 @@ import {
 } from "@/lib/data/queries";
 import { mapOnboardingVariant } from "@/lib/onboarding-variant";
 import { chooseOnboardingTrack } from "@/actions/onboarding-track";
+import Link from "next/link";
 import { Mascot } from "@/components/mascot/Mascot";
 import { SalesMascot } from "@/components/mascot/SalesMascot";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Icon } from "@/components/icons/Icon";
 
 export default async function SelectOnboardingPage() {
   const {
@@ -51,6 +53,14 @@ export default async function SelectOnboardingPage() {
 
   return (
     <div className="relative flex h-full flex-col items-center justify-center px-6 py-10">
+      <Link
+        href="/profile"
+        aria-label="Profile"
+        className="absolute left-5 top-5 flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-card text-text shadow-card"
+      >
+        <Icon name="user" size={17} />
+      </Link>
+
       <div className="absolute right-5 top-5">
         <NotificationBell unreadCount={unreadNotificationCount} />
       </div>

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { Mascot } from "@/components/mascot/Mascot";
 import { MilestoneCard, GrowthMilestoneCard } from "@/components/journey/MilestoneCard";
 import { ContinueJourneyButton } from "@/components/journey/ContinueJourneyButton";
@@ -11,6 +13,7 @@ import {
   getEmployee,
   getEmployeeAssessments,
   getEmployeeVariant,
+  getHomeVariant,
   getIsHrAdmin,
   getMilestoneAssessments,
   getProfile,
@@ -18,10 +21,24 @@ import {
   getTasks,
   getUnreadNotificationCount,
 } from "@/lib/data/queries";
+import { ONBOARDING_TRACK_COOKIE, isOnboardingTrack } from "@/lib/onboarding-track";
 import { currentPhase, daysRemainingInPhase, growthReviewUnlocked, progressPercent } from "@/lib/business-rules";
 import { PHASE_META, GROWTH_PHASE_META, type PhaseKey } from "@/lib/types";
 
 export default async function HomePage() {
+  // An employee whose home variant isn't the default (e.g. Akij Light
+  // Engineering) runs two onboarding tracks side by side and must pick one
+  // via /select-onboarding before reaching Home — re-asked every login
+  // since signOut() clears this cookie. Lives here (not the shared (app)
+  // layout) so /profile and /notifications stay reachable pre-selection —
+  // e.g. the Profile button on /select-onboarding itself.
+  const homeVariant = await getHomeVariant();
+  if (!homeVariant.isDefault) {
+    const cookieStore = await cookies();
+    const track = cookieStore.get(ONBOARDING_TRACK_COOKIE)?.value;
+    if (!isOnboardingTrack(track)) redirect("/select-onboarding");
+  }
+
   const [
     { data: profile },
     { data: employee },
