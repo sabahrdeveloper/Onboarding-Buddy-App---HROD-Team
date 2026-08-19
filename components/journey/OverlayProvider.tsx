@@ -72,6 +72,7 @@ interface OverlayProviderProps {
   identityDefaults: MilestoneIdentity;
   hrContactList: ContactListEntry[];
   itContactList: ContactListEntry[];
+  helpIssueTypes: string[];
   children: React.ReactNode;
 }
 
@@ -85,6 +86,7 @@ export function OverlayProvider({
   identityDefaults,
   hrContactList,
   itContactList,
+  helpIssueTypes,
   children,
 }: OverlayProviderProps) {
   const router = useRouter();
@@ -359,6 +361,7 @@ export function OverlayProvider({
 
       {current?.type === "help" && (
         <HelpRequestOverlay
+          issueTypes={helpIssueTypes}
           relatedTaskTitle={helpRelatedTask?.title}
           onBack={pop}
           onSubmit={(payload) => handleSubmitHelp(helpRelatedTaskId, payload)}

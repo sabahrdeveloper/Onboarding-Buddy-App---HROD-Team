@@ -60,11 +60,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // so they're fetched in a second small batch rather than the first —
   // same reasoning as the subordinate-detail page: an employee only ever
   // sees their own variant's template content.
-  const [{ data: templatesData }, { data: milestoneTemplatesData }, { data: contactsData }] = await Promise.all([
-    supabase.from("assessment_templates").select("*").eq("variant_id", variant.id),
-    supabase.from("milestone_assessment_templates").select("*").eq("variant_id", variant.id),
-    supabase.from("contacts").select("*").eq("variant_id", variant.id).order("key"),
-  ]);
+  const [{ data: templatesData }, { data: milestoneTemplatesData }, { data: contactsData }, { data: issueTypesData }] =
+    await Promise.all([
+      supabase.from("assessment_templates").select("*").eq("variant_id", variant.id),
+      supabase.from("milestone_assessment_templates").select("*").eq("variant_id", variant.id),
+      supabase.from("contacts").select("*").eq("variant_id", variant.id).order("key"),
+      supabase
+        .from("help_issue_types")
+        .select("label")
+        .eq("variant_id", variant.id)
+        .eq("active", true)
+        .order("sequence"),
+    ]);
+  const helpIssueTypes = (issueTypesData ?? []).map((t) => t.label);
 
   const statusByTaskId = new Map((statuses ?? []).map((s) => [s.task_id, s]));
   const tasks: Task[] = (rawTasks ?? []).map((t) => ({
@@ -203,6 +211,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       identityDefaults={identityDefaults}
       hrContactList={hrContactList}
       itContactList={itContactList}
+      helpIssueTypes={helpIssueTypes}
     >
       <div className="flex min-h-full flex-col" style={themeVars}>
         <div className="flex-1 px-4 pb-5 pt-1">{children}</div>

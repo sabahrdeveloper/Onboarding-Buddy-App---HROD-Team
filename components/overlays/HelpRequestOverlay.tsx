@@ -5,17 +5,16 @@ import { Icon } from "@/components/icons/Icon";
 import { Mascot } from "@/components/mascot/Mascot";
 import { OverlayShell } from "@/components/overlays/OverlayShell";
 
-const ISSUE_TYPES = ["System Access", "Policy", "KPI / Role", "Buddy / Mentor", "Training", "Other"];
-
 interface HelpRequestOverlayProps {
+  issueTypes: string[];
   relatedTaskTitle?: string;
   onBack: () => void;
   onSubmit: (payload: { issueType: string; description: string; phone: string }) => void;
   pending: boolean;
 }
 
-export function HelpRequestOverlay({ relatedTaskTitle, onBack, onSubmit, pending }: HelpRequestOverlayProps) {
-  const [issueType, setIssueType] = useState(ISSUE_TYPES[0]);
+export function HelpRequestOverlay({ issueTypes, relatedTaskTitle, onBack, onSubmit, pending }: HelpRequestOverlayProps) {
+  const [issueType, setIssueType] = useState(issueTypes[0] ?? "");
   const [description, setDescription] = useState("");
   const [phone, setPhone] = useState("");
   const [attached, setAttached] = useState(false);
@@ -53,7 +52,7 @@ export function HelpRequestOverlay({ relatedTaskTitle, onBack, onSubmit, pending
           onChange={(e) => setIssueType(e.target.value)}
           className="w-full rounded-input border border-line bg-card px-3.5 py-3 font-en text-sm text-text outline-none focus:border-green"
         >
-          {ISSUE_TYPES.map((t) => (
+          {issueTypes.map((t) => (
             <option key={t}>{t}</option>
           ))}
         </select>

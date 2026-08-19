@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getEmployeeVariant } from "@/lib/data/queries";
 
 interface SubmitHelpRequestInput {
   issueType: string;
@@ -37,11 +38,19 @@ export async function submitHelpRequest(input: SubmitHelpRequestInput): Promise<
   }
 
   const ticketId = generateTicketId();
+  const variant = await getEmployeeVariant();
 
-  // System Access issues are IT's — everything else (Policy, KPI/Role,
-  // Buddy/Mentor, Training, Other) routes to HR, matching the ISSUE_TYPES
-  // list in HelpRequestOverlay.
-  const assignedTeam = input.issueType === "System Access" ? "it" : "hr";
+  // Routing (which team an issue type goes to) is now variant-configured
+  // via help_issue_types (see the HR admin Issue Types screen) instead of a
+  // hardcoded rule — falls back to "hr" only if the type was somehow
+  // removed between the form loading and this submit.
+  const { data: issueTypeRow } = await supabase
+    .from("help_issue_types")
+    .select("assigned_team")
+    .eq("variant_id", variant.id)
+    .eq("label", input.issueType)
+    .maybeSingle();
+  const assignedTeam = issueTypeRow?.assigned_team ?? "hr";
 
   const { error } = await supabase.from("help_requests").insert({
     employee_enroll_number: profile.enroll_number,
@@ -52,6 +61,7 @@ export async function submitHelpRequest(input: SubmitHelpRequestInput): Promise<
     ticket_id: ticketId,
     status: "open",
     assigned_team: assignedTeam,
+    variant_id: variant.id,
   });
 
   if (error) return { error: "পাঠানো যায়নি। একটু পর আবার চেষ্টা করুন।" };
