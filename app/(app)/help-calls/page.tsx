@@ -16,13 +16,24 @@ interface RawTicket {
 
 export default async function HelpCallsPage() {
   const supabase = await createClient();
-  const [{ data: employee }, { data: tasks }, isManagerRes, isHrRes, isItRes] = await Promise.all([
-    getEmployee(),
-    getTasks(),
-    supabase.rpc("is_manager"),
-    supabase.rpc("is_hr_admin"),
-    supabase.rpc("is_it_admin"),
-  ]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const [{ data: employee }, { data: tasks }, isManagerRes, isHrRes, isItRes, { data: viewerProfile }] =
+    await Promise.all([
+      getEmployee(),
+      getTasks(),
+      supabase.rpc("is_manager"),
+      supabase.rpc("is_hr_admin"),
+      supabase.rpc("is_it_admin"),
+      user
+        ? supabase.from("profiles").select("admin_variant_id").eq("id", user.id).single()
+        : Promise.resolve({ data: null }),
+    ]);
+  // A content-admin's HR/IT queue is scoped to their own variant only; a
+  // real global HR/IT admin (admin_variant_id null) keeps seeing everything
+  // company-wide, same as before this feature existed.
+  const viewerVariantId = viewerProfile?.admin_variant_id ?? null;
 
   const isManager = Boolean(isManagerRes.data);
   const isHr = Boolean(isHrRes.data);
@@ -63,11 +74,9 @@ export default async function HelpCallsPage() {
   }
   if (isHr || isIt) {
     const teams = [isHr && "hr", isIt && "it"].filter((t): t is string => Boolean(t));
-    const { data } = await supabase
-      .from("help_requests")
-      .select(ticketCols)
-      .in("assigned_team", teams)
-      .order("created_at", { ascending: false });
+    let query = supabase.from("help_requests").select(ticketCols).in("assigned_team", teams);
+    if (viewerVariantId) query = query.eq("variant_id", viewerVariantId);
+    const { data } = await query.order("created_at", { ascending: false });
     directedRaw.push(...(data ?? []));
   }
 
