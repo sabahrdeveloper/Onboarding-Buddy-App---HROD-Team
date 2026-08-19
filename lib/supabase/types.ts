@@ -302,18 +302,29 @@ export type Database = {
           icon: string
           key: string
           name: string
+          variant_id: string
         }
         Insert: {
           icon: string
           key: string
           name: string
+          variant_id: string
         }
         Update: {
           icon?: string
           key?: string
           name?: string
+          variant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "badges_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contacts: {
         Row: {
@@ -323,6 +334,7 @@ export type Database = {
           name: string
           phone: string
           role: string
+          variant_id: string
         }
         Insert: {
           active?: boolean
@@ -331,6 +343,7 @@ export type Database = {
           name: string
           phone: string
           role: string
+          variant_id: string
         }
         Update: {
           active?: boolean
@@ -339,8 +352,17 @@ export type Database = {
           name?: string
           phone?: string
           role?: string
+          variant_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employee_assessments: {
         Row: {
@@ -533,6 +555,47 @@ export type Database = {
           },
         ]
       }
+      help_issue_types: {
+        Row: {
+          active: boolean
+          assigned_team: string
+          created_at: string
+          id: string
+          label: string
+          sequence: number
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          active?: boolean
+          assigned_team: string
+          created_at?: string
+          id?: string
+          label: string
+          sequence?: number
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          active?: boolean
+          assigned_team?: string
+          created_at?: string
+          id?: string
+          label?: string
+          sequence?: number
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_issue_types_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_requests: {
         Row: {
           assigned_team: string
@@ -546,6 +609,7 @@ export type Database = {
           related_task_id: string | null
           status: string
           ticket_id: string
+          variant_id: string
         }
         Insert: {
           assigned_team: string
@@ -559,6 +623,7 @@ export type Database = {
           related_task_id?: string | null
           status?: string
           ticket_id: string
+          variant_id: string
         }
         Update: {
           assigned_team?: string
@@ -572,6 +637,7 @@ export type Database = {
           related_task_id?: string | null
           status?: string
           ticket_id?: string
+          variant_id?: string
         }
         Relationships: [
           {
@@ -586,6 +652,13 @@ export type Database = {
             columns: ["related_task_id"]
             isOneToOne: false
             referencedRelation: "onboarding_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "help_requests_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
             referencedColumns: ["id"]
           },
         ]
