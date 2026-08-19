@@ -22,6 +22,7 @@ export default async function ProfilePage() {
       getEmployee(),
       getTasks(),
       getTaskStatuses(),
+      // Filtered below (after `variant` resolves) — see the `.filter` on badgeDefs.
       supabase.from("badges").select("*"),
       supabase.auth.getUser(),
       getEmployeeVariant(),
@@ -76,7 +77,9 @@ export default async function ProfilePage() {
     "180_days_growth_ready": completed === total && total > 0,
   };
 
-  const badges: BadgeDef[] = (badgeDefs ?? []).map((b) => ({
+  const badges: BadgeDef[] = (badgeDefs ?? [])
+    .filter((b) => b.variant_id === variant.id)
+    .map((b) => ({
     key: b.key,
     icon: b.icon as IconName,
     name: b.name,

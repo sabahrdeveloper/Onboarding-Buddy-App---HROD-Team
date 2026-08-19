@@ -40,7 +40,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     variant,
     { data: rawTasks },
     { data: statuses },
-    { data: contactsData },
     { data: assessmentsData },
     { data: milestoneAssessmentsData },
     { data: sbuAssignmentsData },
@@ -51,7 +50,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getEmployeeVariant(),
     getTasks(),
     getTaskStatuses(),
-    supabase.from("contacts").select("*").order("key"),
     getEmployeeAssessments(),
     getMilestoneAssessments(),
     supabase.from("sbu_hr_assignments").select("*"),
@@ -62,9 +60,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // so they're fetched in a second small batch rather than the first —
   // same reasoning as the subordinate-detail page: an employee only ever
   // sees their own variant's template content.
-  const [{ data: templatesData }, { data: milestoneTemplatesData }] = await Promise.all([
+  const [{ data: templatesData }, { data: milestoneTemplatesData }, { data: contactsData }] = await Promise.all([
     supabase.from("assessment_templates").select("*").eq("variant_id", variant.id),
     supabase.from("milestone_assessment_templates").select("*").eq("variant_id", variant.id),
+    supabase.from("contacts").select("*").eq("variant_id", variant.id).order("key"),
   ]);
 
   const statusByTaskId = new Map((statuses ?? []).map((s) => [s.task_id, s]));
