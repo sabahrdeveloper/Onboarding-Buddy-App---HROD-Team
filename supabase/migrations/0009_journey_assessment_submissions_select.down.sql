@@ -1,0 +1,1 @@
+drop policy if exists journey_assessment_submissions_select_own on public.journey_assessment_submissions;
