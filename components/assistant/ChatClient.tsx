@@ -19,6 +19,20 @@ const QUICK: [string, string][] = [
   ["Help", "help"],
 ];
 
+// Sales Onboarding only — same underlying KB keys, Bangla display labels.
+const QUICK_BN: [string, string][] = [
+  ["রোল / JD", "role"],
+  ["সিস্টেম অ্যাক্সেস", "email"],
+  ["পলিসি", "policy"],
+  ["বাডি", "buddy"],
+  ["KPI", "kpi"],
+  ["৩০ দিন", "30"],
+  ["৬০ দিন", "60"],
+  ["৯০ দিন", "90"],
+  ["১৮০ দিন", "180"],
+  ["সাহায্য", "help"],
+];
+
 const SESSION_STORAGE_KEY = "ob_assistant_session_id";
 
 interface ChatMessage {
@@ -29,13 +43,15 @@ interface ChatMessage {
 
 let nextId = 1;
 
-export function ChatClient() {
+export function ChatClient({ bn: isBn }: { bn?: boolean }) {
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: nextId++,
       from: "bot",
-      text: "আসসালামু আলাইকুম! Onboarding নিয়ে যেকোনো প্রশ্ন লিখুন — Role, System Access, Policy, Buddy, KPI, 30/60/90/180 Days। নিচ থেকেও বেছে নিতে পারেন।",
+      text: isBn
+        ? "আসসালামু আলাইকুম! Onboarding নিয়ে যেকোনো প্রশ্ন লিখুন — রোল, সিস্টেম অ্যাক্সেস, পলিসি, বাডি, KPI, ৩০/৬০/৯০/১৮০ দিন। নিচ থেকেও বেছে নিতে পারেন।"
+        : "আসসালামু আলাইকুম! Onboarding নিয়ে যেকোনো প্রশ্ন লিখুন — Role, System Access, Policy, Buddy, KPI, 30/60/90/180 Days। নিচ থেকেও বেছে নিতে পারেন।",
     },
   ]);
   const [typing, setTyping] = useState(false);
@@ -100,13 +116,17 @@ export function ChatClient() {
         </div>
         <div>
           <div className="font-en text-base font-extrabold text-text">OnboardingBuddy Assistant</div>
-          <div className="text-xs font-semibold text-green-dark">Onboarding Support · অনলাইন</div>
+          <div className="text-xs font-semibold text-green-dark">
+            {isBn ? "অনবোর্ডিং সাপোর্ট · অনলাইন" : "Onboarding Support · অনলাইন"}
+          </div>
         </div>
       </div>
 
       <div className="mb-3.5 flex items-start gap-2 rounded-card border border-[#f0d08a] bg-warn-bg p-3 shadow-card">
         <Icon name="info" size={16} className="mt-0.5 shrink-0 text-warn-tx" />
-        <p className="text-[12.5px] font-semibold leading-snug text-warn-tx">AI Assistant is still under development.</p>
+        <p className="text-[12.5px] font-semibold leading-snug text-warn-tx">
+          {isBn ? "AI সহকারী এখনো developing পর্যায়ে আছে।" : "AI Assistant is still under development."}
+        </p>
       </div>
 
       <div ref={feedRef} className="flex flex-col gap-2.5">
@@ -132,10 +152,10 @@ export function ChatClient() {
       </div>
 
       <div className="mb-3 mt-4 font-en text-[11px] font-bold uppercase tracking-[0.04em] text-muted">
-        Quick Questions
+        {isBn ? "সহজ প্রশ্ন" : "Quick Questions"}
       </div>
       <div className="mb-24 flex flex-wrap gap-2">
-        {QUICK.map(([label, key]) => (
+        {(isBn ? QUICK_BN : QUICK).map(([label, key]) => (
           <button
             key={key}
             onClick={() => handleQuickAsk(label, key)}

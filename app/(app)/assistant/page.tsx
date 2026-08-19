@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { ChatClient } from "@/components/assistant/ChatClient";
-import { getAdminVariantId } from "@/lib/data/queries";
+import { getAdminVariantId, getEmployeeVariant } from "@/lib/data/queries";
 
 export default async function AssistantPage() {
   // AI Assistant is not part of a variant-scoped HR admin's experience —
@@ -9,5 +9,6 @@ export default async function AssistantPage() {
   const adminVariantId = await getAdminVariantId();
   if (adminVariantId) redirect("/employees");
 
-  return <ChatClient />;
+  const variant = await getEmployeeVariant();
+  return <ChatClient bn={variant.navMode === "resources"} />;
 }
