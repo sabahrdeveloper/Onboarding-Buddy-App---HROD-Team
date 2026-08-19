@@ -948,6 +948,44 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          is_read: boolean
+          recipient_enroll_number: string
+          title: string
+          variant_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          recipient_enroll_number: string
+          title: string
+          variant_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          recipient_enroll_number?: string
+          title?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_tasks: {
         Row: {
           active: boolean
