@@ -12,6 +12,16 @@ const BASE_ITEMS: { href: string; label: string; icon: IconName }[] = [
   { href: "/profile", label: "Profile", icon: "user" },
 ];
 
+// Sales Onboarding (navMode === 'resources') only — the same items,
+// relabeled in Bangla. Every other variant/track keeps BASE_ITEMS as-is.
+const BASE_ITEMS_BN: { href: string; label: string; icon: IconName }[] = [
+  { href: "/home", label: "হোম", icon: "home" },
+  { href: "/journey", label: "জার্নি", icon: "map" },
+  { href: "/kpi", label: "KPI", icon: "trending" },
+  { href: "/assistant", label: "AI সহকারী", icon: "assistantNav" },
+  { href: "/profile", label: "প্রোফাইল", icon: "user" },
+];
+
 interface BottomNavProps {
   showTeamTab?: boolean;
   /** Akij Light Engineering (and any future variant with nav_mode='resources')
@@ -30,21 +40,28 @@ export function BottomNav({ showTeamTab, navMode = "kpi", showEmployeesTab }: Bo
   // such special-case screen, so it keeps the normal nav.
   if (pathname.startsWith("/assistant") && !showEmployeesTab) return null;
 
-  let baseItems =
-    navMode === "resources"
-      ? BASE_ITEMS.map((item) =>
-          item.href === "/kpi" ? { href: "/resources", label: "Resources", icon: "book" as IconName } : item,
-        )
-      : BASE_ITEMS;
+  const isBn = navMode === "resources";
+
+  let baseItems = isBn
+    ? BASE_ITEMS_BN.map((item) =>
+        item.href === "/kpi" ? { href: "/resources", label: "রিসোর্স", icon: "book" as IconName } : item,
+      )
+    : BASE_ITEMS;
 
   if (showEmployeesTab) {
     baseItems = baseItems.map((item) =>
-      item.href === "/assistant" ? { href: "/employees", label: "Employees", icon: "briefcase" as IconName } : item,
+      item.href === "/assistant"
+        ? { href: "/employees", label: isBn ? "কর্মীরা" : "Employees", icon: "briefcase" as IconName }
+        : item,
     );
   }
 
   const items = showTeamTab
-    ? [...baseItems.slice(0, 2), { href: "/team", label: "Team", icon: "users" as IconName }, ...baseItems.slice(2)]
+    ? [
+        ...baseItems.slice(0, 2),
+        { href: "/team", label: isBn ? "টিম" : "Team", icon: "users" as IconName },
+        ...baseItems.slice(2),
+      ]
     : baseItems;
 
   return (

@@ -28,15 +28,15 @@ const TYPE_ICON: Record<string, IconName> = {
   not_submitted_reminder: "bell",
 };
 
-function dateSectionLabel(iso: string): string {
+function dateSectionLabel(iso: string, isBn?: boolean): string {
   const date = new Date(iso);
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
   const isSameDay = (a: Date, b: Date) =>
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  if (isSameDay(date, today)) return "Today";
-  if (isSameDay(date, yesterday)) return "Yesterday";
+  if (isSameDay(date, today)) return isBn ? "আজ" : "Today";
+  if (isSameDay(date, yesterday)) return isBn ? "গতকাল" : "Yesterday";
   return formatMonthDate(iso);
 }
 
@@ -44,10 +44,10 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
-function groupByDate(notifications: NotificationRow[]): [string, NotificationRow[]][] {
+function groupByDate(notifications: NotificationRow[], isBn?: boolean): [string, NotificationRow[]][] {
   const groups = new Map<string, NotificationRow[]>();
   for (const n of notifications) {
-    const label = dateSectionLabel(n.createdAt);
+    const label = dateSectionLabel(n.createdAt, isBn);
     groups.set(label, [...(groups.get(label) ?? []), n]);
   }
   return [...groups.entries()];
@@ -57,9 +57,10 @@ interface NotificationsListProps {
   notifications: NotificationRow[];
   markOneAction: (id: string) => Promise<NotificationActionResult>;
   markAllAction: () => Promise<NotificationActionResult>;
+  bn?: boolean;
 }
 
-export function NotificationsList({ notifications, markOneAction, markAllAction }: NotificationsListProps) {
+export function NotificationsList({ notifications, markOneAction, markAllAction, bn: isBn }: NotificationsListProps) {
   const router = useRouter();
   const [tab, setTab] = useState<"all" | "unread">("all");
   const [isPending, startTransition] = useTransition();
@@ -91,7 +92,7 @@ export function NotificationsList({ notifications, markOneAction, markAllAction 
               tab === "all" ? "bg-green text-white" : "bg-card text-muted border border-line"
             }`}
           >
-            All
+            {isBn ? "সব" : "All"}
           </button>
           <button
             onClick={() => setTab("unread")}
@@ -99,7 +100,7 @@ export function NotificationsList({ notifications, markOneAction, markAllAction 
               tab === "unread" ? "bg-green text-white" : "bg-card text-muted border border-line"
             }`}
           >
-            Unread
+            {isBn ? "অপঠিত" : "Unread"}
             {unreadCount > 0 && (
               <span className="rounded-full bg-err-tx px-1.5 py-0.5 font-en text-[10px] font-bold text-white">
                 {unreadCount}
@@ -109,7 +110,7 @@ export function NotificationsList({ notifications, markOneAction, markAllAction 
         </div>
         {unreadCount > 0 && (
           <button onClick={handleMarkAllRead} disabled={isPending} className="font-en text-[11.5px] font-bold text-green-dark">
-            Mark all read
+            {isBn ? "সব পঠিত করুন" : "Mark all read"}
           </button>
         )}
       </div>
@@ -120,7 +121,7 @@ export function NotificationsList({ notifications, markOneAction, markAllAction 
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {groupByDate(visible).map(([label, group]) => (
+          {groupByDate(visible, isBn).map(([label, group]) => (
             <div key={label}>
               <div className="mb-2 font-en text-[11px] font-bold uppercase tracking-[0.03em] text-muted">{label}</div>
               <div className="flex flex-col gap-2">

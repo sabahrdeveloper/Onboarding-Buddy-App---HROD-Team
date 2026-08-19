@@ -31,6 +31,22 @@ export const GROWTH_PHASE_META = {
   reviewItemCount: 10,
 };
 
+// Bangla variants — used only when the employee's current effective variant
+// is the Sales Onboarding one (navMode === 'resources'); the Organization
+// Onboarding track (even for a Light Engineering employee) stays English,
+// same as every other variant.
+export const PHASE_META_BN: Record<PhaseKey, { title: string; sub: string; color: string; short: string }> = {
+  "30": { title: "৩০ দিনের জার্নি", sub: "জয়েনিং → প্রথম চেক (Work ১-২২)", color: "#2CA24D", short: "৩০দি" },
+  "60": { title: "৬০ দিনের জার্নি", sub: "কন্ট্রিবিউশন ও সহযোগিতা (Work ২৩-৩৯)", color: "#2CA24D", short: "৬০দি" },
+  "90": { title: "৯০ দিনের জার্নি", sub: "কনফার্মেশন ও রিভিউ (Work ৪০-৫০)", color: "#2CA24D", short: "৯০দি" },
+};
+
+export const GROWTH_PHASE_META_BN = {
+  title: "১৮০ দিনের গ্রোথ",
+  sub: "গ্রোথ ও ইন্টিগ্রেশন রিভিউ",
+  reviewItemCount: 10,
+};
+
 export interface Task {
   id: string;
   workNumber: number;

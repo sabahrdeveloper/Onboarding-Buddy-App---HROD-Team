@@ -28,11 +28,11 @@ export default async function ResourcesPage() {
 
   return (
     <div>
-      <div className="mb-4 mt-0.5 font-en text-xl font-bold text-text">Resources</div>
+      <div className="mb-4 mt-0.5 font-en text-xl font-bold text-text">রিসোর্স</div>
 
       {byCategory.size === 0 && (
         <div className="rounded-card border border-line bg-card p-4 text-center text-sm font-medium text-muted shadow-card">
-          No resources have been added yet.
+          এখনো কোনো রিসোর্স যোগ করা হয়নি।
         </div>
       )}
 

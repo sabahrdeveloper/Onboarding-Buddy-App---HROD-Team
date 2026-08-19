@@ -19,7 +19,7 @@ function StatusPill({ children, tone }: { children: React.ReactNode; tone: "done
   );
 }
 
-export function MilestoneCard({ phase }: { phase: JourneyPhase }) {
+export function MilestoneCard({ phase, bn: isBn }: { phase: JourneyPhase; bn?: boolean }) {
   const { openPhase } = useOverlay();
   const pending = phase.totalTasks - phase.doneTasks;
   const pct = Math.round((phase.doneTasks / phase.totalTasks) * 100);
@@ -48,15 +48,15 @@ export function MilestoneCard({ phase }: { phase: JourneyPhase }) {
       <div className="mb-2.5 mt-0.5 flex gap-[22px]">
         <div className="text-xs font-semibold text-muted">
           <b className="block font-en text-base font-extrabold leading-tight text-text">{bn(phase.totalTasks)}</b>
-          Total
+          {isBn ? "মোট" : "Total"}
         </div>
         <div className="text-xs font-semibold text-muted">
           <b className="block font-en text-base font-extrabold leading-tight text-green-dark">{bn(phase.doneTasks)}</b>
-          Completed
+          {isBn ? "সম্পন্ন" : "Completed"}
         </div>
         <div className="text-xs font-semibold text-muted">
           <b className="block font-en text-base font-extrabold leading-tight text-warn-tx">{bn(pending)}</b>
-          Pending
+          {isBn ? "বাকি" : "Pending"}
         </div>
       </div>
 
@@ -66,17 +66,17 @@ export function MilestoneCard({ phase }: { phase: JourneyPhase }) {
 
       <div className="mt-3 flex items-center justify-between gap-2.5">
         {complete ? (
-          <StatusPill tone="done">Completed</StatusPill>
+          <StatusPill tone="done">{isBn ? "সম্পন্ন" : "Completed"}</StatusPill>
         ) : inProgress ? (
-          <StatusPill tone="prog">In Progress</StatusPill>
+          <StatusPill tone="prog">{isBn ? "চলমান" : "In Progress"}</StatusPill>
         ) : (
-          <StatusPill tone="lock">Not started</StatusPill>
+          <StatusPill tone="lock">{isBn ? "শুরু হয়নি" : "Not started"}</StatusPill>
         )}
         <button
           onClick={() => openPhase(phase.key)}
           className="flex items-center gap-1.5 rounded-xl bg-green px-[18px] py-[11px] font-en text-[13px] font-bold text-white transition-transform active:scale-[0.98]"
         >
-          {inProgress ? "Continue" : complete ? "Review" : "Start"}
+          {inProgress ? (isBn ? "চালিয়ে যান" : "Continue") : complete ? (isBn ? "রিভিউ" : "Review") : isBn ? "শুরু করুন" : "Start"}
           <Icon name="arrowRight" size={15} />
         </button>
       </div>
@@ -84,7 +84,7 @@ export function MilestoneCard({ phase }: { phase: JourneyPhase }) {
   );
 }
 
-export function GrowthMilestoneCard({ phase }: { phase: GrowthPhase }) {
+export function GrowthMilestoneCard({ phase, bn: isBn }: { phase: GrowthPhase; bn?: boolean }) {
   const { openGrowth } = useOverlay();
   return (
     <div
@@ -103,18 +103,20 @@ export function GrowthMilestoneCard({ phase }: { phase: GrowthPhase }) {
       </div>
 
       <div className="mb-1 text-[12.5px] font-medium text-muted">
-        {bn(phase.reviewItemCount)}টি growth review item · ৯০ দিনের পর শুরু
+        {isBn ? `${bn(phase.reviewItemCount)}টি প্রশ্ন · ৯০ দিনের পর শুরু` : `${phase.reviewItemCount} growth review items · unlocks after 90 days`}
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-2.5">
-        <StatusPill tone={phase.unlocked ? "prog" : "lock"}>{phase.unlocked ? "Unlocked" : "Locked"}</StatusPill>
+        <StatusPill tone={phase.unlocked ? "prog" : "lock"}>
+          {phase.unlocked ? (isBn ? "আনলকড" : "Unlocked") : isBn ? "লকড" : "Locked"}
+        </StatusPill>
         <button
           onClick={openGrowth}
           className={`flex items-center gap-1.5 rounded-xl px-[18px] py-[11px] font-en text-[13px] font-bold text-white transition-transform active:scale-[0.98] ${
             phase.unlocked ? "bg-green" : "bg-[#9aa1ab]"
           }`}
         >
-          {phase.unlocked ? "Start Review" : "Preview"}
+          {phase.unlocked ? (isBn ? "রিভিউ শুরু করুন" : "Start Review") : isBn ? "প্রিভিউ" : "Preview"}
           <Icon name="arrowRight" size={15} />
         </button>
       </div>

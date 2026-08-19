@@ -2,8 +2,15 @@
 
 import { Icon } from "@/components/icons/Icon";
 import { useOverlay } from "@/components/journey/OverlayProvider";
+import { bn } from "@/lib/bn";
 
-export function ViewWorkListButton({ variant = "secondary" }: { variant?: "primary" | "secondary" }) {
+export function ViewWorkListButton({
+  variant = "secondary",
+  bn: isBn,
+}: {
+  variant?: "primary" | "secondary";
+  bn?: boolean;
+}) {
   // Reads the live task list already loaded into OverlayProvider (same
   // source the "50 Work List" overlay itself opens) rather than a prop, so
   // the count can never drift from what's actually shown when opened —
@@ -19,7 +26,7 @@ export function ViewWorkListButton({ variant = "secondary" }: { variant?: "prima
   return (
     <button onClick={openList} className={className}>
       <Icon name="list" size={18} />
-      View Full {taskCount} Work List
+      {isBn ? `সম্পূর্ণ ${bn(taskCount)}টি কাজের তালিকা দেখুন` : `View Full ${taskCount} Work List`}
     </button>
   );
 }

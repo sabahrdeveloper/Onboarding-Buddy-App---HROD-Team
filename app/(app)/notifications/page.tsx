@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getEmployee } from "@/lib/data/queries";
+import { getEmployee, getEmployeeVariant } from "@/lib/data/queries";
 import { BackButton } from "@/components/ui/BackButton";
 import { NotificationsList, type NotificationRow } from "@/components/employee-kpi/NotificationsList";
 import { markAllNotificationsRead, markNotificationRead } from "@/actions/notifications";
@@ -8,6 +8,8 @@ import { markAllNotificationsRead, markNotificationRead } from "@/actions/notifi
 export default async function NotificationsPage() {
   const { data: employee } = await getEmployee();
   if (!employee) redirect("/login");
+  const variant = await getEmployeeVariant();
+  const isBn = variant.navMode === "resources";
 
   const supabase = await createClient();
   const { data: notifications } = await supabase
@@ -30,10 +32,15 @@ export default async function NotificationsPage() {
     <div>
       <div className="mb-4 mt-0.5 flex items-center gap-3">
         <BackButton fallbackHref="/home" />
-        <div className="font-en text-lg font-extrabold text-text">Notifications</div>
+        <div className="font-en text-lg font-extrabold text-text">{isBn ? "নোটিফিকেশন" : "Notifications"}</div>
       </div>
 
-      <NotificationsList notifications={rows} markOneAction={markNotificationRead} markAllAction={markAllNotificationsRead} />
+      <NotificationsList
+        notifications={rows}
+        markOneAction={markNotificationRead}
+        markAllAction={markAllNotificationsRead}
+        bn={isBn}
+      />
     </div>
   );
 }

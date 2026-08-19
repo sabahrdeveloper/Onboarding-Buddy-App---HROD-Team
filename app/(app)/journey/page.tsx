@@ -1,18 +1,17 @@
 import { MilestoneCard, GrowthMilestoneCard } from "@/components/journey/MilestoneCard";
 import { ViewWorkListButton } from "@/components/journey/ViewWorkListButton";
-import { getEmployeeAssessments, getMilestoneAssessments, getTaskStatuses, getTasks } from "@/lib/data/queries";
+import { getEmployeeAssessments, getEmployeeVariant, getMilestoneAssessments, getTaskStatuses, getTasks } from "@/lib/data/queries";
 import { growthReviewUnlocked } from "@/lib/business-rules";
-import { PHASE_META, GROWTH_PHASE_META, type PhaseKey } from "@/lib/types";
+import { PHASE_META, PHASE_META_BN, GROWTH_PHASE_META, GROWTH_PHASE_META_BN, type PhaseKey } from "@/lib/types";
 
 const PHASE_KEYS: PhaseKey[] = ["30", "60", "90"];
 
 export default async function JourneyPage() {
-  const [{ data: tasks }, { data: statuses }, { data: assessments }, { data: milestoneAssessments }] = await Promise.all([
-    getTasks(),
-    getTaskStatuses(),
-    getEmployeeAssessments(),
-    getMilestoneAssessments(),
-  ]);
+  const [{ data: tasks }, { data: statuses }, { data: assessments }, { data: milestoneAssessments }, variant] =
+    await Promise.all([getTasks(), getTaskStatuses(), getEmployeeAssessments(), getMilestoneAssessments(), getEmployeeVariant()]);
+  const isBn = variant.navMode === "resources";
+  const phaseMeta = isBn ? PHASE_META_BN : PHASE_META;
+  const growthMeta = isBn ? GROWTH_PHASE_META_BN : GROWTH_PHASE_META;
 
   const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
   const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
@@ -47,21 +46,24 @@ export default async function JourneyPage() {
   return (
     <div>
       <div className="mb-4 mt-1.5">
-        <div className="font-en text-xl font-bold leading-tight text-text">30 · 60 · 90 · 180 Journey</div>
+        <div className="font-en text-xl font-bold leading-tight text-text">
+          {isBn ? "৩০ · ৬০ · ৯০ · ১৮০ জার্নি" : "30 · 60 · 90 · 180 Journey"}
+        </div>
         <div className="mt-1 text-sm font-medium leading-snug text-muted">
           আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা
         </div>
       </div>
 
-      <ViewWorkListButton />
+      <ViewWorkListButton bn={isBn} />
 
       {PHASE_KEYS.map((key) => (
         <MilestoneCard
           key={key}
-          phase={{ key, ...PHASE_META[key], totalTasks: doneByPhase[key].total, doneTasks: doneByPhase[key].done }}
+          phase={{ key, ...phaseMeta[key], totalTasks: doneByPhase[key].total, doneTasks: doneByPhase[key].done }}
+          bn={isBn}
         />
       ))}
-      <GrowthMilestoneCard phase={{ key: "180", ...GROWTH_PHASE_META, unlocked }} />
+      <GrowthMilestoneCard phase={{ key: "180", ...growthMeta, unlocked }} bn={isBn} />
     </div>
   );
 }
