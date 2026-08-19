@@ -194,13 +194,13 @@ export default async function HomePage() {
       {isHrAdmin && (
         <div className="mt-3 flex gap-3">
           <Link
-            href="/admin/tasks/new"
+            href="/admin/tasks"
             className="flex-1 rounded-button bg-green px-4 py-3.5 text-center font-en text-sm font-bold text-white"
           >
             {isMirrorApp ? "+ টাস্ক যোগ করুন" : "+ Add Task"}
           </Link>
           <Link
-            href="/admin/resources/new"
+            href="/admin/resources"
             className="flex-1 rounded-button bg-green px-4 py-3.5 text-center font-en text-sm font-bold text-white"
           >
             {isMirrorApp ? "+ রিসোর্স যোগ করুন" : "+ Add Resource"}

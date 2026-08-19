@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="px-4 pb-8 pt-4">
       <div className="mb-4">
-        <div className="font-en text-lg font-extrabold text-text">HR Admin</div>
+        <div className="font-en text-lg font-extrabold text-text">HR Admin Panel</div>
         <div className="text-[13px] font-medium text-muted">{variant?.name ?? "Unknown variant"}</div>
       </div>
       <div className="mb-4 flex flex-wrap gap-2 border-b border-line pb-3">
