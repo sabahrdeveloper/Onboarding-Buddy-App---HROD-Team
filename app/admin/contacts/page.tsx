@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { deleteContact, toggleContactActive, CONTACT_KEYS } from "@/actions/admin-contacts";
+import { deleteContact, toggleContactActive } from "@/actions/admin-contacts";
+import { CONTACT_KEYS } from "@/lib/contact-keys";
 
 export default async function AdminContactsPage() {
   const supabase = await createClient();

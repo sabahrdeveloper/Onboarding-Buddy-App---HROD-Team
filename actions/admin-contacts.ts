@@ -4,13 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireVariantAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-// Fixed set — the app's contact lookups (HrServicesGrid, the "dept"-tagged
-// task fallback in app/(app)/layout.tsx, etc.) reference these specific
-// keys by name. A variant creating a row under any other key would just be
-// dead data nothing ever renders, so the form constrains to this list
-// instead of allowing free text.
-export const CONTACT_KEYS = ["hr", "it", "manager", "buddy", "dept", "training"] as const;
+import { CONTACT_KEYS } from "@/lib/contact-keys";
 
 function parseContactForm(formData: FormData) {
   return {

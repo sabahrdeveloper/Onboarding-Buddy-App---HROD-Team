@@ -28,7 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="font-en text-lg font-extrabold text-text">HR Admin</div>
         <div className="text-[13px] font-medium text-muted">{variant?.name ?? "Unknown variant"}</div>
       </div>
-      <div className="mb-4 flex gap-2 border-b border-line pb-3">
+      <div className="mb-4 flex flex-wrap gap-2 border-b border-line pb-3">
         <Link
           href="/admin/tasks"
           className="rounded-lg border border-line bg-card px-3 py-1.5 font-en text-[13px] font-semibold text-text"
@@ -40,6 +40,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           className="rounded-lg border border-line bg-card px-3 py-1.5 font-en text-[13px] font-semibold text-text"
         >
           Resources
+        </Link>
+        <Link
+          href="/admin/contacts"
+          className="rounded-lg border border-line bg-card px-3 py-1.5 font-en text-[13px] font-semibold text-text"
+        >
+          Contacts
+        </Link>
+        <Link
+          href="/admin/issue-types"
+          className="rounded-lg border border-line bg-card px-3 py-1.5 font-en text-[13px] font-semibold text-text"
+        >
+          Issue Types
         </Link>
         <Link href="/home" className="ml-auto rounded-lg px-3 py-1.5 font-en text-[13px] font-semibold text-muted">
           Exit

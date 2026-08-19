@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ContactForm } from "@/components/admin/ContactForm";
-import { createContact, CONTACT_KEYS } from "@/actions/admin-contacts";
+import { createContact } from "@/actions/admin-contacts";
+import { CONTACT_KEYS } from "@/lib/contact-keys";
 
 export default async function NewContactPage() {
   const supabase = await createClient();

@@ -1,4 +1,4 @@
-import { CONTACT_KEYS } from "@/actions/admin-contacts";
+import { CONTACT_KEYS } from "@/lib/contact-keys";
 
 const inputClass =
   "w-full rounded-input border border-line bg-card px-3.5 py-2.5 font-en text-[14px] text-text outline-none focus:border-green";
