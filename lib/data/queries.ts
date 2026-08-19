@@ -91,6 +91,16 @@ export const getTasks = cache(async () => {
   return getTasksForVariant(variant.id);
 });
 
+// Dynamic journeys (non-default variants only — the default variant keeps
+// its hardcoded 30/60/90/180). `activeOnly` false is used by the admin
+// screen, which must still show/assign to a deactivated journey.
+export const getPhasesForVariant = cache(async (variantId: string, opts: { activeOnly: boolean }) => {
+  const supabase = await createClient();
+  let query = supabase.from("onboarding_phases").select("*").eq("variant_id", variantId).order("sequence");
+  if (opts.activeOnly) query = query.eq("active", true);
+  return query;
+});
+
 export const getTaskStatuses = cache(async () => {
   const supabase = await createClient();
   const { data: employee } = await getEmployee();

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getAdminVariantId, getOnboardingVariants, getTasksForVariant } from "@/lib/data/queries";
+import { getAdminVariantId, getOnboardingVariants, getPhasesForVariant, getTasksForVariant } from "@/lib/data/queries";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 import { Icon } from "@/components/icons/Icon";
 import { BuddyAssignForm } from "@/components/team/BuddyAssignForm";
@@ -40,25 +40,45 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       .order("created_at", { ascending: false }),
   ]);
 
-  const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
   const doneTaskIds = new Set((statuses ?? []).filter((s) => s.done).map((s) => s.task_id));
-  const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
-    "30": { done: 0, total: 0 },
-    "60": { done: 0, total: 0 },
-    "90": { done: 0, total: 0 },
-  };
+
+  // Dynamic journeys (non-default variants) — no fixed 30/60/90 grid.
+  const journeys = employeeVariant.isDefault
+    ? null
+    : (await getPhasesForVariant(employeeVariant.id, { activeOnly: true })).data;
+
   let completed = 0;
-  for (const t of tasks ?? []) {
-    const phase = phaseById.get(t.id);
-    if (!phase) continue;
-    doneByPhase[phase].total++;
-    if (doneTaskIds.has(t.id)) {
-      doneByPhase[phase].done++;
-      completed++;
+  let total = 0;
+  let doneByPhase: Record<PhaseKey, { done: number; total: number }> = { "30": { done: 0, total: 0 }, "60": { done: 0, total: 0 }, "90": { done: 0, total: 0 } };
+  let doneByJourney = new Map<string, { done: number; total: number }>();
+
+  if (journeys) {
+    const activeTasks = (tasks ?? []).filter((t) => t.active);
+    doneByJourney = new Map(journeys.map((j) => [j.id, { done: 0, total: 0 }]));
+    for (const t of activeTasks) {
+      const counts = doneByJourney.get(t.phase);
+      if (!counts) continue;
+      counts.total++;
+      if (doneTaskIds.has(t.id)) {
+        counts.done++;
+        completed++;
+      }
     }
+    total = activeTasks.length;
+  } else {
+    const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
+    for (const t of tasks ?? []) {
+      const phase = phaseById.get(t.id);
+      if (!phase) continue;
+      doneByPhase[phase].total++;
+      if (doneTaskIds.has(t.id)) {
+        doneByPhase[phase].done++;
+        completed++;
+      }
+    }
+    total = tasks?.length ?? 0;
   }
-  const total = tasks?.length ?? 0;
-  const pct = progressPercent(completed);
+  const pct = journeys ? (total > 0 ? Math.round((completed / total) * 100) : 0) : progressPercent(completed);
 
   return (
     <div>
@@ -88,17 +108,29 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         <div className="my-3 h-2.5 overflow-hidden rounded-lg bg-[#edeff2]">
           <div className="h-full rounded-lg bg-green transition-[width]" style={{ width: `${pct}%` }} />
         </div>
-        <div className="grid grid-cols-3 gap-2 text-center">
-          {(["30", "60", "90"] as PhaseKey[]).map((phase) => (
-            <div key={phase} className="rounded-xl bg-bg px-2 py-2.5">
-              <div className="font-en text-sm font-extrabold text-text">
-                {doneByPhase[phase].done}/{doneByPhase[phase].total}
-              </div>
-              <div className="mt-0.5 text-[10.5px] font-semibold text-muted">
-                {isBn ? `${phase} দিন` : `${phase} Days`}
-              </div>
-            </div>
-          ))}
+        <div className={`grid gap-2 text-center ${journeys ? "grid-cols-2" : "grid-cols-3"}`}>
+          {journeys
+            ? journeys.map((j) => {
+                const counts = doneByJourney.get(j.id) ?? { done: 0, total: 0 };
+                return (
+                  <div key={j.id} className="rounded-xl bg-bg px-2 py-2.5">
+                    <div className="font-en text-sm font-extrabold text-text">
+                      {counts.done}/{counts.total}
+                    </div>
+                    <div className="mt-0.5 truncate text-[10.5px] font-semibold text-muted">{j.name}</div>
+                  </div>
+                );
+              })
+            : (["30", "60", "90"] as PhaseKey[]).map((phase) => (
+                <div key={phase} className="rounded-xl bg-bg px-2 py-2.5">
+                  <div className="font-en text-sm font-extrabold text-text">
+                    {doneByPhase[phase].done}/{doneByPhase[phase].total}
+                  </div>
+                  <div className="mt-0.5 text-[10.5px] font-semibold text-muted">
+                    {isBn ? `${phase} দিন` : `${phase} Days`}
+                  </div>
+                </div>
+              ))}
         </div>
         <div className="mt-2 text-[12.5px] font-medium text-muted">
           {isBn ? `মোট: ${completed}/${total} কাজ সম্পন্ন` : `Total: ${completed}/${total} works completed`}

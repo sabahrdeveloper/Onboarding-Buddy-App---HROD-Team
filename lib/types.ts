@@ -1,4 +1,8 @@
-export type PhaseKey = "30" | "60" | "90";
+// Default (Akij Resource) variant: exactly "30"|"60"|"90". Any non-default
+// variant (dynamic journeys, see onboarding_phases) stores an arbitrary
+// onboarding_phases.id here instead — loosened to plain string so both
+// fit the same column/type without a parallel Task shape.
+export type PhaseKey = string;
 export type AssessmentKey = "30" | "60" | "90" | "180";
 
 export interface JourneyPhase {

@@ -7,6 +7,7 @@ import {
   getEmployeeAssessments,
   getEmployeeVariant,
   getMilestoneAssessments,
+  getPhasesForVariant,
   getProfile,
   getTaskStatuses,
   getTasks,
@@ -63,7 +64,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // so they're fetched in a second small batch rather than the first —
   // same reasoning as the subordinate-detail page: an employee only ever
   // sees their own variant's template content.
-  const [{ data: templatesData }, { data: milestoneTemplatesData }, { data: contactsData }, { data: issueTypesData }] =
+  const [{ data: templatesData }, { data: milestoneTemplatesData }, { data: contactsData }, { data: issueTypesData }, { data: journeysData }] =
     await Promise.all([
       supabase.from("assessment_templates").select("*").eq("variant_id", variant.id),
       supabase.from("milestone_assessment_templates").select("*").eq("variant_id", variant.id),
@@ -74,8 +75,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         .eq("variant_id", variant.id)
         .eq("active", true)
         .order("sequence"),
+      variant.isDefault ? Promise.resolve({ data: null }) : getPhasesForVariant(variant.id, { activeOnly: true }),
     ]);
   const helpIssueTypes = (issueTypesData ?? []).map((t) => t.label);
+  const journeys = (journeysData ?? []).map((j) => ({ id: j.id, name: j.name }));
 
   const statusByTaskId = new Map((statuses ?? []).map((s) => [s.task_id, s]));
   const tasks: Task[] = (rawTasks ?? []).map((t) => ({
@@ -215,6 +218,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       hrContactList={hrContactList}
       itContactList={itContactList}
       helpIssueTypes={helpIssueTypes}
+      journeys={journeys}
+      dynamicMode={!variant.isDefault}
       bn={variant.navMode === "resources"}
     >
       <div className="flex min-h-full flex-col" style={themeVars}>

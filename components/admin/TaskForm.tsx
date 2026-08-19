@@ -19,10 +19,15 @@ export function TaskForm({
   action,
   initial,
   submitLabel,
+  phases,
 }: {
   action: (formData: FormData) => void;
   initial?: TaskFormValues;
   submitLabel: string;
+  /** Non-default variants only — when provided, renders a select of the
+   * variant's dynamic journeys (onboarding_phases) instead of the legacy
+   * fixed 30/60/90 dropdown. */
+  phases?: { id: string; name: string }[];
 }) {
   return (
     <form action={action} className="flex flex-col gap-3.5">
@@ -32,12 +37,22 @@ export function TaskForm({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelClass}>Phase</label>
-          <select name="phase" defaultValue={initial?.phase ?? "30"} className={inputClass}>
-            <option value="30">30</option>
-            <option value="60">60</option>
-            <option value="90">90</option>
-          </select>
+          <label className={labelClass}>{phases ? "Journey" : "Phase"}</label>
+          {phases ? (
+            <select name="phase" defaultValue={initial?.phase ?? phases[0]?.id} className={inputClass}>
+              {phases.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select name="phase" defaultValue={initial?.phase ?? "30"} className={inputClass}>
+              <option value="30">30</option>
+              <option value="60">60</option>
+              <option value="90">90</option>
+            </select>
+          )}
         </div>
         <div>
           <label className={labelClass}>Work Number (sequence)</label>

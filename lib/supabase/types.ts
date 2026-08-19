@@ -986,6 +986,44 @@ export type Database = {
           },
         ]
       }
+      onboarding_phases: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          sequence: number
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          sequence?: number
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          sequence?: number
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_phases_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "onboarding_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       onboarding_tasks: {
         Row: {
           active: boolean

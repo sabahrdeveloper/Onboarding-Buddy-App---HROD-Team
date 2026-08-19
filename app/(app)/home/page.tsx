@@ -16,6 +16,7 @@ import {
   getHomeVariant,
   getIsHrAdmin,
   getMilestoneAssessments,
+  getPhasesForVariant,
   getProfile,
   getTaskStatuses,
   getTasks,
@@ -66,57 +67,125 @@ export default async function HomePage() {
   const isMirrorApp = variant.navMode === "resources";
   const phaseMeta = isMirrorApp ? PHASE_META_BN : PHASE_META;
   const growthMeta = isMirrorApp ? GROWTH_PHASE_META_BN : GROWTH_PHASE_META;
-
-  const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
-  const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
-    "30": { done: 0, total: 0 },
-    "60": { done: 0, total: 0 },
-    "90": { done: 0, total: 0 },
-  };
-  let completed = 0;
-  for (const s of statuses ?? []) {
-    const phase = phaseById.get(s.task_id);
-    if (!phase) continue;
-    doneByPhase[phase].total++;
-    if (s.done) {
-      doneByPhase[phase].done++;
-      completed++;
-    }
-  }
-
-  const total = tasks?.length ?? 50;
-  const pct = progressPercent(completed);
-  const phase = currentPhase(doneByPhase);
   const firstName = profile?.full_name?.trim().split(/\s+/).slice(0, 2).join(" ") ?? "";
 
-  const submittedByKey = new Map((assessments ?? []).map((a) => [a.assessment_key, Boolean(a.submitted_at)]));
-  const milestoneSubmittedByKey = new Map(
-    (milestoneAssessments ?? []).map((m) => [m.milestone, Boolean(m.submitted_at)]),
-  );
-  const fullySubmitted = (key: PhaseKey) => (submittedByKey.get(key) ?? false) && (milestoneSubmittedByKey.get(key) ?? false);
-  const growthUnlocked = growthReviewUnlocked(total > 0 && completed === total, {
-    "30": fullySubmitted("30"),
-    "60": fullySubmitted("60"),
-    "90": fullySubmitted("90"),
-  });
+  // Non-default variants (e.g. Light Engineering's Sales Onboarding) run
+  // dynamic, HR-authored journeys instead of the fixed 30/60/90/180 —
+  // see onboarding_phases. No Growth Review concept here (deferred).
+  let pct: number;
+  let completed: number;
+  let total: number;
+  let phaseTitle: string;
+  let reminderText: string;
+  let milestone: { key: string; title: string; sub: string; color: string; short: string; totalTasks: number; doneTasks: number } | null;
+  let growthUnlocked = false;
+  let phase: PhaseKey | "180" = "180";
+  let hasJourneys = true;
 
-  const milestone =
-    phase === "180"
-      ? null
-      : { key: phase, ...phaseMeta[phase], totalTasks: doneByPhase[phase].total, doneTasks: doneByPhase[phase].done };
-  const phaseTitle = phase === "180" ? growthMeta.title : phaseMeta[phase].title;
+  if (!variant.isDefault) {
+    const { data: journeys } = await getPhasesForVariant(variant.id, { activeOnly: true });
+    hasJourneys = (journeys ?? []).length > 0;
+    const activeTasks = (tasks ?? []).filter((t) => t.active);
+    const doneTaskIds = new Set((statuses ?? []).filter((s) => s.done).map((s) => s.task_id));
+    const doneByJourney = new Map((journeys ?? []).map((j) => [j.id, { done: 0, total: 0 }]));
+    completed = 0;
+    for (const t of activeTasks) {
+      const counts = doneByJourney.get(t.phase);
+      if (!counts) continue;
+      counts.total++;
+      if (doneTaskIds.has(t.id)) {
+        counts.done++;
+        completed++;
+      }
+    }
+    total = activeTasks.length;
+    pct = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const reminderText =
-    phase === "180"
-      ? isMirrorApp
-        ? "অভিনন্দন! আপনি আপনার ৯০ দিনের checklist সম্পন্ন করেছেন। এবার আপনার ১৮০ দিনের Growth Review সম্পন্ন করুন।"
-        : "Dear Employee, congratulations on finishing your 90-day checklist! Please complete your 180 Days Growth Review next."
-      : (() => {
-          const daysLeft = daysRemainingInPhase(phase, employee?.joining_date ?? null);
-          return isMirrorApp
-            ? `আপনার বাকি ${bn(Number(phase))} দিনের কাজ ${bn(daysLeft)} দিনের মধ্যে সম্পন্ন করুন।`
-            : `Dear Employee, please complete your remaining ${phase} days task within ${daysLeft} day${daysLeft === 1 ? "" : "s"}.`;
-        })();
+    const currentJourney = (journeys ?? []).find((j) => {
+      const counts = doneByJourney.get(j.id);
+      return counts && counts.done < counts.total;
+    });
+
+    if (currentJourney) {
+      phase = currentJourney.id;
+      const counts = doneByJourney.get(currentJourney.id)!;
+      milestone = {
+        key: currentJourney.id,
+        title: currentJourney.name,
+        sub: "",
+        color: "#2CA24D",
+        short: currentJourney.name.slice(0, 3).toUpperCase(),
+        totalTasks: counts.total,
+        doneTasks: counts.done,
+      };
+      phaseTitle = currentJourney.name;
+      reminderText = isMirrorApp
+        ? `আপনার "${currentJourney.name}"-এর বাকি কাজ সম্পন্ন করুন।`
+        : `Please complete your remaining tasks in "${currentJourney.name}".`;
+    } else {
+      phase = "";
+      milestone = null;
+      phaseTitle = isMirrorApp ? "সম্পন্ন" : "Complete";
+      reminderText =
+        (journeys ?? []).length === 0
+          ? isMirrorApp
+            ? "এখনো কোনো জার্নি যোগ করা হয়নি।"
+            : "No journeys have been added yet."
+          : isMirrorApp
+            ? "অভিনন্দন! আপনি সব কাজ সম্পন্ন করেছেন।"
+            : "Congratulations! You've completed all your tasks.";
+    }
+  } else {
+    const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
+    const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
+      "30": { done: 0, total: 0 },
+      "60": { done: 0, total: 0 },
+      "90": { done: 0, total: 0 },
+    };
+    completed = 0;
+    for (const s of statuses ?? []) {
+      const p = phaseById.get(s.task_id);
+      if (!p) continue;
+      doneByPhase[p].total++;
+      if (s.done) {
+        doneByPhase[p].done++;
+        completed++;
+      }
+    }
+
+    total = tasks?.length ?? 50;
+    pct = progressPercent(completed);
+    phase = currentPhase(doneByPhase);
+
+    const submittedByKey = new Map((assessments ?? []).map((a) => [a.assessment_key, Boolean(a.submitted_at)]));
+    const milestoneSubmittedByKey = new Map(
+      (milestoneAssessments ?? []).map((m) => [m.milestone, Boolean(m.submitted_at)]),
+    );
+    const fullySubmitted = (key: PhaseKey) => (submittedByKey.get(key) ?? false) && (milestoneSubmittedByKey.get(key) ?? false);
+    growthUnlocked = growthReviewUnlocked(total > 0 && completed === total, {
+      "30": fullySubmitted("30"),
+      "60": fullySubmitted("60"),
+      "90": fullySubmitted("90"),
+    });
+
+    milestone =
+      phase === "180"
+        ? null
+        : { key: phase, ...phaseMeta[phase], totalTasks: doneByPhase[phase].total, doneTasks: doneByPhase[phase].done };
+    phaseTitle = phase === "180" ? growthMeta.title : phaseMeta[phase].title;
+
+    reminderText =
+      phase === "180"
+        ? isMirrorApp
+          ? "অভিনন্দন! আপনি আপনার ৯০ দিনের checklist সম্পন্ন করেছেন। এবার আপনার ১৮০ দিনের Growth Review সম্পন্ন করুন।"
+          : "Dear Employee, congratulations on finishing your 90-day checklist! Please complete your 180 Days Growth Review next."
+        : (() => {
+            const daysLeft = daysRemainingInPhase(phase, employee?.joining_date ?? null);
+            return isMirrorApp
+              ? `আপনার বাকি ${bn(Number(phase))} দিনের কাজ ${bn(daysLeft)} দিনের মধ্যে সম্পন্ন করুন।`
+              : `Dear Employee, please complete your remaining ${phase} days task within ${daysLeft} day${daysLeft === 1 ? "" : "s"}.`;
+          })();
+  }
 
   return (
     <div>
@@ -188,7 +257,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <ContinueJourneyButton currentPhase={phase} bn={isMirrorApp} />
+      {phase !== "" && <ContinueJourneyButton currentPhase={phase} bn={isMirrorApp} />}
       <ViewWorkListButton variant="primary" bn={isMirrorApp} />
 
       {isHrAdmin && (
@@ -231,8 +300,18 @@ export default async function HomePage() {
       </div>
       {milestone ? (
         <MilestoneCard phase={milestone} bn={isMirrorApp} />
-      ) : (
+      ) : variant.isDefault ? (
         <GrowthMilestoneCard phase={{ key: "180", ...growthMeta, unlocked: growthUnlocked }} bn={isMirrorApp} />
+      ) : (
+        <div className="rounded-card border border-[#cde9d5] bg-[#fafdf9] p-4 text-center text-sm font-semibold text-green-dark shadow-card">
+          {hasJourneys
+            ? isMirrorApp
+              ? "সব জার্নি সম্পন্ন!"
+              : "All journeys complete!"
+            : isMirrorApp
+              ? "এখনো কোনো জার্নি যোগ করা হয়নি।"
+              : "No journeys have been added yet."}
+        </div>
       )}
     </div>
   );

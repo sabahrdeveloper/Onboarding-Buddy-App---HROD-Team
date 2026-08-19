@@ -74,6 +74,12 @@ interface OverlayProviderProps {
   hrContactList: ContactListEntry[];
   itContactList: ContactListEntry[];
   helpIssueTypes: string[];
+  /** Non-default variants' dynamic journeys (onboarding_phases) — empty for
+   * the default variant, which keeps the fixed 30/60/90 PHASE_META lookup. */
+  journeys?: { id: string; name: string }[];
+  /** True for any non-default variant — no Growth Review/assessment concept
+   * exists yet for dynamic journeys (deferred). */
+  dynamicMode?: boolean;
   /** True only when the employee's currently effective variant is Sales
    * Onboarding (navMode === 'resources') — every other variant/track keeps
    * the existing English/mixed copy unchanged. */
@@ -92,6 +98,8 @@ export function OverlayProvider({
   hrContactList,
   itContactList,
   helpIssueTypes,
+  journeys = [],
+  dynamicMode = false,
   bn: isBn,
   children,
 }: OverlayProviderProps) {
@@ -131,6 +139,7 @@ export function OverlayProvider({
     setStack([]);
   }
 
+  const journeyById = new Map(journeys.map((j) => [j.id, j]));
   const contactByKey = new Map(contacts.map((c) => [c.key, c]));
   const templateByKey = new Map(assessmentTemplates.map((t) => [t.key, t]));
   const submittedByKey = new Map(submittedAssessments.map((s) => [s.assessmentKey, s]));
@@ -141,7 +150,7 @@ export function OverlayProvider({
   // BRU-09, extended by item 6: 30/60/90 must have both the rating assessment
   // AND the new mandatory milestone questions submitted before Growth unlocks.
   const phaseFullySubmitted = (phase: PhaseKey) =>
-    Boolean(submittedByKey.get(phase)?.submittedAt) && submittedMilestoneKeys.has(phase);
+    Boolean(submittedByKey.get(phase as AssessmentKey)?.submittedAt) && submittedMilestoneKeys.has(phase);
   const growthUnlocked = growthReviewUnlocked(allTasksDone, {
     "30": phaseFullySubmitted("30"),
     "60": phaseFullySubmitted("60"),
@@ -326,9 +335,12 @@ export function OverlayProvider({
       {current?.type === "phase" && (
         <PhaseViewOverlay
           phaseKey={current.phaseKey}
+          title={dynamicMode ? (journeyById.get(current.phaseKey)?.name ?? "") : undefined}
+          sub={dynamicMode ? "" : undefined}
+          hideAssessment={dynamicMode}
           tasks={tasks}
           contacts={contacts}
-          submitted={phaseFullySubmitted(current.phaseKey)}
+          submitted={dynamicMode ? false : phaseFullySubmitted(current.phaseKey)}
           onBack={pop}
           onOpenTask={(id) => push({ type: "task", taskId: id })}
           onOpenAssessment={(key) => push({ type: "assessment", key })}

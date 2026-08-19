@@ -1,6 +1,13 @@
 import { MilestoneCard, GrowthMilestoneCard } from "@/components/journey/MilestoneCard";
 import { ViewWorkListButton } from "@/components/journey/ViewWorkListButton";
-import { getEmployeeAssessments, getEmployeeVariant, getMilestoneAssessments, getTaskStatuses, getTasks } from "@/lib/data/queries";
+import {
+  getEmployeeAssessments,
+  getEmployeeVariant,
+  getMilestoneAssessments,
+  getPhasesForVariant,
+  getTaskStatuses,
+  getTasks,
+} from "@/lib/data/queries";
 import { growthReviewUnlocked } from "@/lib/business-rules";
 import { PHASE_META, PHASE_META_BN, GROWTH_PHASE_META, GROWTH_PHASE_META_BN, type PhaseKey } from "@/lib/types";
 
@@ -12,6 +19,58 @@ export default async function JourneyPage() {
   const isBn = variant.navMode === "resources";
   const phaseMeta = isBn ? PHASE_META_BN : PHASE_META;
   const growthMeta = isBn ? GROWTH_PHASE_META_BN : GROWTH_PHASE_META;
+
+  if (!variant.isDefault) {
+    const { data: journeys } = await getPhasesForVariant(variant.id, { activeOnly: true });
+    const activeTasks = (tasks ?? []).filter((t) => t.active);
+    const doneTaskIds = new Set((statuses ?? []).filter((s) => s.done).map((s) => s.task_id));
+    const doneByJourney = new Map((journeys ?? []).map((j) => [j.id, { done: 0, total: 0 }]));
+    for (const t of activeTasks) {
+      const counts = doneByJourney.get(t.phase);
+      if (!counts) continue;
+      counts.total++;
+      if (doneTaskIds.has(t.id)) counts.done++;
+    }
+
+    return (
+      <div>
+        <div className="mb-4 mt-1.5">
+          <div className="font-en text-xl font-bold leading-tight text-text">
+            {isBn ? "আপনার জার্নি" : "Your Journey"}
+          </div>
+          <div className="mt-1 text-sm font-medium leading-snug text-muted">
+            {isBn ? "আপনার onboarding পথচলা" : "Your onboarding path"}
+          </div>
+        </div>
+
+        <ViewWorkListButton bn={isBn} />
+
+        {(journeys ?? []).map((j) => {
+          const counts = doneByJourney.get(j.id) ?? { done: 0, total: 0 };
+          return (
+            <MilestoneCard
+              key={j.id}
+              phase={{
+                key: j.id,
+                title: j.name,
+                sub: "",
+                color: "#2CA24D",
+                short: j.name.slice(0, 3).toUpperCase(),
+                totalTasks: counts.total,
+                doneTasks: counts.done,
+              }}
+              bn={isBn}
+            />
+          );
+        })}
+        {(journeys ?? []).length === 0 && (
+          <div className="rounded-card border border-line bg-card p-4 text-center text-sm font-medium text-muted shadow-card">
+            {isBn ? "এখনো কোনো জার্নি যোগ করা হয়নি।" : "No journeys have been added yet."}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
   const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
