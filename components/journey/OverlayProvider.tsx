@@ -47,6 +47,7 @@ interface OverlayContextValue {
   openHelp: (relatedTaskId?: string) => void;
   openContact: (contactKey: string) => void;
   notify: (text: string, icon?: IconName) => void;
+  taskCount: number;
 }
 
 const OverlayContext = createContext<OverlayContextValue | null>(null);
@@ -298,6 +299,7 @@ export function OverlayProvider({
         openHelp: (relatedTaskId) => push({ type: "help", relatedTaskId }),
         openContact: (contactKey) => push({ type: "contact", contactKey }),
         notify: showToast,
+        taskCount: tasks.length,
       }}
     >
       {children}
