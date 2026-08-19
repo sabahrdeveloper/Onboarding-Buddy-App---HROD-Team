@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons/Icon";
 import { createClient } from "@/lib/supabase/server";
-import { getEmployee, getEmployeeVariant, getProfile, getTaskStatuses, getTasks } from "@/lib/data/queries";
+import { getEmployee, getEmployeeVariant, getHomeVariant, getProfile, getTaskStatuses, getTasks } from "@/lib/data/queries";
 import { signOut } from "@/actions/sign-out";
 import { linkGoogleAccount } from "@/actions/auth";
 import { currentPhase, progressPercent } from "@/lib/business-rules";
@@ -16,7 +17,7 @@ interface BadgeDef {
 export default async function ProfilePage() {
   const supabase = await createClient();
 
-  const [{ data: profile }, { data: employee }, { data: tasks }, { data: statuses }, { data: badgeDefs }, { data: userData }, variant] =
+  const [{ data: profile }, { data: employee }, { data: tasks }, { data: statuses }, { data: badgeDefs }, { data: userData }, variant, homeVariant] =
     await Promise.all([
       getProfile(),
       getEmployee(),
@@ -26,6 +27,7 @@ export default async function ProfilePage() {
       supabase.from("badges").select("*"),
       supabase.auth.getUser(),
       getEmployeeVariant(),
+      getHomeVariant(),
     ]);
   const googleLinked = (userData.user?.identities ?? []).some((i) => i.provider === "google");
 
@@ -187,6 +189,16 @@ export default async function ProfilePage() {
             Link Google Account
           </button>
         </form>
+      )}
+
+      {!homeVariant.isDefault && (
+        <Link
+          href="/select-onboarding"
+          className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-text transition-transform active:scale-[0.98]"
+        >
+          <Icon name="map" size={16} />
+          Change Onboarding Module
+        </Link>
       )}
 
       <form action={signOut} className="mt-5">

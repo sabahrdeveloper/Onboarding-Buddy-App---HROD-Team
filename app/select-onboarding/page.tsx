@@ -1,10 +1,18 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getAuthUser, getEmployee, getHomeVariant, getOnboardingVariants, getTasksForVariant } from "@/lib/data/queries";
+import {
+  getAuthUser,
+  getEmployee,
+  getHomeVariant,
+  getOnboardingVariants,
+  getTasksForVariant,
+  getUnreadNotificationCount,
+} from "@/lib/data/queries";
 import { mapOnboardingVariant } from "@/lib/onboarding-variant";
 import { chooseOnboardingTrack } from "@/actions/onboarding-track";
 import { Mascot } from "@/components/mascot/Mascot";
 import { SalesMascot } from "@/components/mascot/SalesMascot";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export default async function SelectOnboardingPage() {
   const {
@@ -12,10 +20,11 @@ export default async function SelectOnboardingPage() {
   } = await getAuthUser();
   if (!user) redirect("/login");
 
-  const [{ data: employee }, homeVariant, { data: variantsData }] = await Promise.all([
+  const [{ data: employee }, homeVariant, { data: variantsData }, unreadNotificationCount] = await Promise.all([
     getEmployee(),
     getHomeVariant(),
     getOnboardingVariants(),
+    getUnreadNotificationCount(),
   ]);
 
   // Only relevant for an employee whose home variant runs two tracks — a
@@ -41,7 +50,11 @@ export default async function SelectOnboardingPage() {
   const salesDone = (salesTasks ?? []).filter((t) => doneTaskIds.has(t.id)).length;
 
   return (
-    <div className="flex h-full flex-col items-center justify-center px-6 py-10">
+    <div className="relative flex h-full flex-col items-center justify-center px-6 py-10">
+      <div className="absolute right-5 top-5">
+        <NotificationBell unreadCount={unreadNotificationCount} />
+      </div>
+
       {homeVariant.logoUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- variant logo path is DB-driven
         <img src={homeVariant.logoUrl} alt={homeVariant.name} className="mb-8 h-10 w-auto object-contain" />
