@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: variant } = await supabase
     .from("onboarding_variants")
-    .select("name")
+    .select("name, nav_mode")
     .eq("id", profile.admin_variant_id)
     .single();
 
@@ -53,6 +53,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         >
           Issue Types
         </Link>
+        {variant?.nav_mode === "resources" && (
+          <Link
+            href="/admin/notifications"
+            className="rounded-lg border border-line bg-card px-3 py-1.5 font-en text-[13px] font-semibold text-text"
+          >
+            Notifications
+          </Link>
+        )}
         <Link href="/home" className="ml-auto rounded-lg px-3 py-1.5 font-en text-[13px] font-semibold text-muted">
           Exit
         </Link>
