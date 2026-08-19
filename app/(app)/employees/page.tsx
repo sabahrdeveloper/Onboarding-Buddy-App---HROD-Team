@@ -21,6 +21,7 @@ export default async function EmployeesPage() {
   const employees = (allEmployees ?? []).filter(
     (e) => resolveVariantForSbu(e.sbu, variants).id === adminVariantId,
   );
+  const isBn = variants.find((v) => v.id === adminVariantId)?.navMode === "resources";
 
   const total = tasks?.length ?? 0;
   const enrollNumbers = employees.map((e) => e.enroll_number);
@@ -39,7 +40,7 @@ export default async function EmployeesPage() {
 
   return (
     <div>
-      <div className="mb-1 mt-0.5 font-en text-xl font-bold text-text">Employees</div>
+      <div className="mb-1 mt-0.5 font-en text-xl font-bold text-text">{isBn ? "কর্মীরা" : "Employees"}</div>
       <div className="mb-4 text-sm font-medium text-muted">{employees.length} জন এই variant-এ onboarding করছেন।</div>
 
       {employees.length === 0 ? (

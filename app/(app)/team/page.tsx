@@ -1,17 +1,22 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getSubordinates, getTasks } from "@/lib/data/queries";
+import { getEmployeeVariant, getSubordinates, getTasks } from "@/lib/data/queries";
 import { Icon } from "@/components/icons/Icon";
 import { progressPercent } from "@/lib/business-rules";
 
 export default async function TeamPage() {
   const supabase = await createClient();
-  const [{ data: subordinates }, { data: tasks }] = await Promise.all([getSubordinates(), getTasks()]);
+  const [{ data: subordinates }, { data: tasks }, variant] = await Promise.all([
+    getSubordinates(),
+    getTasks(),
+    getEmployeeVariant(),
+  ]);
+  const isBn = variant.navMode === "resources";
 
   if (!subordinates || subordinates.length === 0) {
     return (
       <div>
-        <div className="mb-4 mt-0.5 font-en text-xl font-bold text-text">Team</div>
+        <div className="mb-4 mt-0.5 font-en text-xl font-bold text-text">{isBn ? "টিম" : "Team"}</div>
         <div className="rounded-card border border-line bg-card p-5 text-center shadow-card">
           <p className="text-sm font-medium text-muted">এখনো কোনো subordinate assign করা হয়নি।</p>
         </div>
@@ -33,7 +38,7 @@ export default async function TeamPage() {
 
   return (
     <div>
-      <div className="mb-1 mt-0.5 font-en text-xl font-bold text-text">Team</div>
+      <div className="mb-1 mt-0.5 font-en text-xl font-bold text-text">{isBn ? "টিম" : "Team"}</div>
       <div className="mb-4 text-sm font-medium text-muted">
         {subordinates.length} জন আপনার অধীনে onboarding সম্পন্ন করছেন।
       </div>

@@ -10,10 +10,12 @@ export function HelpCallsTabs({
   mineTickets,
   directedTickets,
   showDirected,
+  bn: isBn,
 }: {
   mineTickets: HelpRequestRow[];
   directedTickets: HelpRequestRow[];
   showDirected: boolean;
+  bn?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("mine");
   const active = tab === "mine" ? mineTickets : directedTickets;
@@ -28,7 +30,7 @@ export function HelpCallsTabs({
               tab === "mine" ? "bg-card text-text shadow-card" : "text-muted"
             }`}
           >
-            My Tickets
+            {isBn ? "আমার টিকেট" : "My Tickets"}
           </button>
           <button
             onClick={() => setTab("directed")}
@@ -36,7 +38,7 @@ export function HelpCallsTabs({
               tab === "directed" ? "bg-card text-text shadow-card" : "text-muted"
             }`}
           >
-            Directed to Me
+            {isBn ? "আমার প্রতি পাঠানো" : "Directed to Me"}
           </button>
         </div>
       )}
@@ -51,7 +53,7 @@ export function HelpCallsTabs({
       ) : (
         <div className="flex flex-col gap-2.5">
           {active.map((t) => (
-            <TicketCard key={t.id} ticket={t} />
+            <TicketCard key={t.id} ticket={t} bn={isBn} />
           ))}
         </div>
       )}

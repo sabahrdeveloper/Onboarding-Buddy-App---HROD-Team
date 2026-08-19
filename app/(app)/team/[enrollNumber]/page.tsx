@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getTasksForVariant, getOnboardingVariants, getIsSuperAdmin } from "@/lib/data/queries";
+import { getTasksForVariant, getOnboardingVariants, getIsSuperAdmin, getEmployeeVariant } from "@/lib/data/queries";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 import { Icon } from "@/components/icons/Icon";
 import { ManagerFeedbackForm } from "@/components/team/ManagerFeedbackForm";
@@ -19,6 +19,13 @@ const ASSESSMENT_LABELS: Record<string, string> = {
   "60": "60 Days Assessment",
   "90": "90 Days Assessment",
   "180": "180 Days Growth Review",
+};
+
+const ASSESSMENT_LABELS_BN: Record<string, string> = {
+  "30": "৩০ দিনের অ্যাসেসমেন্ট",
+  "60": "৬০ দিনের অ্যাসেসমেন্ট",
+  "90": "৯০ দিনের অ্যাসেসমেন্ট",
+  "180": "১৮০ দিনের গ্রোথ রিভিউ",
 };
 
 export default async function SubordinateDetailPage({ params }: { params: Promise<{ enrollNumber: string }> }) {
@@ -41,6 +48,12 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
 
   const { data: variants } = await getOnboardingVariants();
   const variant = resolveVariantForSbu(subordinate.sbu, (variants ?? []).map(mapOnboardingVariant));
+  // Language follows the *viewing manager's* own effective variant, not the
+  // subordinate's — Bangla chrome is a Sales-track thing for the person
+  // looking at the screen, independent of which variant the subordinate
+  // themselves belongs to.
+  const viewerVariant = await getEmployeeVariant();
+  const isBn = viewerVariant.navMode === "resources";
 
   const [
     { data: tasks },
@@ -172,7 +185,9 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
 
       <div className="mb-4 rounded-card border border-line bg-card p-4 shadow-card">
         <div className="flex items-baseline justify-between">
-          <span className="font-en text-[15px] font-semibold text-text">Onboarding Progress</span>
+          <span className="font-en text-[15px] font-semibold text-text">
+            {isBn ? "অনবোর্ডিং অগ্রগতি" : "Onboarding Progress"}
+          </span>
           <span className="font-en text-xl font-extrabold text-green-dark">{pct}%</span>
         </div>
         <div className="my-3 h-2.5 overflow-hidden rounded-lg bg-[#edeff2]">
@@ -184,12 +199,14 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
               <div className="font-en text-sm font-extrabold text-text">
                 {doneByPhase[phase].done}/{doneByPhase[phase].total}
               </div>
-              <div className="mt-0.5 text-[10.5px] font-semibold text-muted">{phase} Days</div>
+              <div className="mt-0.5 text-[10.5px] font-semibold text-muted">
+                {isBn ? `${phase} দিন` : `${phase} Days`}
+              </div>
             </div>
           ))}
         </div>
         <div className="mt-2 text-[12.5px] font-medium text-muted">
-          Total: {completed}/{total} works completed
+          {isBn ? `মোট: ${completed}/${total} কাজ সম্পন্ন` : `Total: ${completed}/${total} works completed`}
         </div>
       </div>
 
@@ -200,7 +217,7 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
         employeeEnrollNumber={enrollNumber}
       />
 
-      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Employee KPI</div>
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">{isBn ? "কর্মী KPI" : "Employee KPI"}</div>
       <ManagerReviewPanel
         submission={kpiSubmission}
         employeeEnrollNumber={enrollNumber}
@@ -208,11 +225,13 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
         isSuperAdmin={isSuperAdmin}
       />
 
-      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Buddy Assignment</div>
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">
+        {isBn ? "বাডি নির্ধারণ" : "Buddy Assignment"}
+      </div>
       <div className="mb-4 rounded-card border border-line bg-card p-4 shadow-card">
         {subordinate.buddy && (
           <div className="mb-3 rounded-xl bg-green-light px-3.5 py-2.5 text-[12.5px] font-semibold text-green-dark">
-            Currently assigned: {subordinate.buddy}
+            {isBn ? `বর্তমানে নির্ধারিত: ${subordinate.buddy}` : `Currently assigned: ${subordinate.buddy}`}
           </div>
         )}
         <BuddyAssignForm
@@ -224,11 +243,14 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
         />
       </div>
 
-      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Assessment Results</div>
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">
+        {isBn ? "অ্যাসেসমেন্ট ফলাফল" : "Assessment Results"}
+      </div>
       <div className="flex flex-col gap-2.5">
         {(templates ?? []).map((template) => {
           const assessment = assessmentByKey.get(template.assessment_key);
-          const label = ASSESSMENT_LABELS[template.assessment_key] ?? template.title;
+          const label =
+            (isBn ? ASSESSMENT_LABELS_BN : ASSESSMENT_LABELS)[template.assessment_key] ?? template.title;
           return (
             <div key={template.assessment_key} className="rounded-card border border-line bg-card p-4 shadow-card">
               <div className="flex items-center justify-between">
@@ -238,7 +260,7 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
                     assessment?.submitted_at ? "bg-ok-bg text-ok-tx" : "bg-[#f0f1f3] text-muted"
                   }`}
                 >
-                  {assessment?.submitted_at ? "Submitted" : "Not submitted"}
+                  {assessment?.submitted_at ? (isBn ? "জমা হয়েছে" : "Submitted") : isBn ? "জমা হয়নি" : "Not submitted"}
                 </span>
               </div>
 
@@ -260,7 +282,7 @@ export default async function SubordinateDetailPage({ params }: { params: Promis
                   {assessment.employee_comment && (
                     <div className="mt-2.5 rounded-xl bg-bg px-3.5 py-2.5 text-[12.5px] font-medium leading-snug text-text">
                       <span className="mb-1 block font-en text-[10.5px] font-bold uppercase tracking-[0.03em] text-muted">
-                        Employee Comment
+                        {isBn ? "কর্মীর মন্তব্য" : "Employee Comment"}
                       </span>
                       {assessment.employee_comment}
                     </div>

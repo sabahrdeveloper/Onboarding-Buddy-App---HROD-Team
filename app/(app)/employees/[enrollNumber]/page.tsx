@@ -28,6 +28,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const variants = (variantsData ?? []).map(mapOnboardingVariant);
   const employeeVariant = resolveVariantForSbu(employee.sbu, variants);
   if (employeeVariant.id !== adminVariantId) notFound();
+  const isBn = employeeVariant.navMode === "resources";
 
   const [{ data: tasks }, { data: statuses }, { data: tickets }] = await Promise.all([
     getTasksForVariant(adminVariantId),
@@ -79,7 +80,9 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
       <div className="mb-4 rounded-card border border-line bg-card p-4 shadow-card">
         <div className="flex items-baseline justify-between">
-          <span className="font-en text-[15px] font-semibold text-text">Onboarding Progress</span>
+          <span className="font-en text-[15px] font-semibold text-text">
+            {isBn ? "অনবোর্ডিং অগ্রগতি" : "Onboarding Progress"}
+          </span>
           <span className="font-en text-xl font-extrabold text-green-dark">{pct}%</span>
         </div>
         <div className="my-3 h-2.5 overflow-hidden rounded-lg bg-[#edeff2]">
@@ -91,20 +94,24 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               <div className="font-en text-sm font-extrabold text-text">
                 {doneByPhase[phase].done}/{doneByPhase[phase].total}
               </div>
-              <div className="mt-0.5 text-[10.5px] font-semibold text-muted">{phase} Days</div>
+              <div className="mt-0.5 text-[10.5px] font-semibold text-muted">
+                {isBn ? `${phase} দিন` : `${phase} Days`}
+              </div>
             </div>
           ))}
         </div>
         <div className="mt-2 text-[12.5px] font-medium text-muted">
-          Total: {completed}/{total} works completed
+          {isBn ? `মোট: ${completed}/${total} কাজ সম্পন্ন` : `Total: ${completed}/${total} works completed`}
         </div>
       </div>
 
-      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Buddy Assignment</div>
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">
+        {isBn ? "বাডি নির্ধারণ" : "Buddy Assignment"}
+      </div>
       <div className="mb-4 rounded-card border border-line bg-card p-4 shadow-card">
         {employee.buddy && (
           <div className="mb-3 rounded-xl bg-green-light px-3.5 py-2.5 text-[12.5px] font-semibold text-green-dark">
-            Currently assigned: {employee.buddy}
+            {isBn ? `বর্তমানে নির্ধারিত: ${employee.buddy}` : `Currently assigned: ${employee.buddy}`}
           </div>
         )}
         <BuddyAssignForm
@@ -116,7 +123,9 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         />
       </div>
 
-      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">Submitted Tickets</div>
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">
+        {isBn ? "জমা দেওয়া টিকেট" : "Submitted Tickets"}
+      </div>
       <div className="flex flex-col gap-2">
         {(tickets ?? []).map((t) => (
           <div key={t.ticket_id} className="rounded-card border border-line bg-card p-3.5 shadow-card">
@@ -137,7 +146,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         ))}
         {(tickets ?? []).length === 0 && (
           <div className="rounded-card border border-line bg-card p-4 text-center text-sm font-medium text-muted shadow-card">
-            No tickets submitted.
+            {isBn ? "কোনো টিকেট জমা দেওয়া হয়নি।" : "No tickets submitted."}
           </div>
         )}
       </div>

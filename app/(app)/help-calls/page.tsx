@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getEmployee, getSubordinates, getTasks } from "@/lib/data/queries";
+import { getEmployee, getEmployeeVariant, getSubordinates, getTasks } from "@/lib/data/queries";
 import { HelpCallsTabs } from "@/components/help-calls/HelpCallsTabs";
 import type { HelpRequestRow } from "@/components/team/TicketCard";
 
@@ -19,7 +19,7 @@ export default async function HelpCallsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const [{ data: employee }, { data: tasks }, isManagerRes, isHrRes, isItRes, { data: viewerProfile }] =
+  const [{ data: employee }, { data: tasks }, isManagerRes, isHrRes, isItRes, { data: viewerProfile }, variant] =
     await Promise.all([
       getEmployee(),
       getTasks(),
@@ -29,7 +29,9 @@ export default async function HelpCallsPage() {
       user
         ? supabase.from("profiles").select("admin_variant_id").eq("id", user.id).single()
         : Promise.resolve({ data: null }),
+      getEmployeeVariant(),
     ]);
+  const isBn = variant.navMode === "resources";
   // A content-admin's HR/IT queue is scoped to their own variant only; a
   // real global HR/IT admin (admin_variant_id null) keeps seeing everything
   // company-wide, same as before this feature existed.
@@ -115,10 +117,10 @@ export default async function HelpCallsPage() {
 
   return (
     <div>
-      <div className="mb-1 mt-0.5 font-en text-xl font-bold text-text">Help Calls</div>
+      <div className="mb-1 mt-0.5 font-en text-xl font-bold text-text">{isBn ? "হেল্প কল" : "Help Calls"}</div>
       <div className="mb-4 text-sm font-medium text-muted">আপনার এবং আপনার প্রতি পাঠানো help request</div>
 
-      <HelpCallsTabs mineTickets={mineTickets} directedTickets={directedTickets} showDirected={showDirected} />
+      <HelpCallsTabs mineTickets={mineTickets} directedTickets={directedTickets} showDirected={showDirected} bn={isBn} />
     </div>
   );
 }

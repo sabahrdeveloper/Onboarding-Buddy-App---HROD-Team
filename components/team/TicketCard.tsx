@@ -23,9 +23,14 @@ export function formatTicketDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
+const STATUS_LABEL_BN: Record<string, string> = {
+  open: "খোলা",
+  resolved: "সমাধান হয়েছে",
+};
+
 /** One help-request ticket, read-only. Shared by the manager's subordinate
  * detail view and the Help Calls screen so both look and behave the same. */
-export function TicketCard({ ticket }: { ticket: HelpRequestRow }) {
+export function TicketCard({ ticket, bn: isBn }: { ticket: HelpRequestRow; bn?: boolean }) {
   return (
     <div className="rounded-card border border-line bg-card p-3.5 shadow-card">
       <div className="flex items-start justify-between gap-2">
@@ -35,7 +40,9 @@ export function TicketCard({ ticket }: { ticket: HelpRequestRow }) {
           )}
           <div className="font-en text-[13px] font-bold text-text">{ticket.issueType}</div>
           {ticket.taskTitle && (
-            <div className="mt-0.5 truncate text-[11.5px] font-medium text-muted">Task: {ticket.taskTitle}</div>
+            <div className="mt-0.5 truncate text-[11.5px] font-medium text-muted">
+              {isBn ? "কাজ" : "Task"}: {ticket.taskTitle}
+            </div>
           )}
         </div>
         <span
@@ -43,7 +50,7 @@ export function TicketCard({ ticket }: { ticket: HelpRequestRow }) {
             STATUS_STYLE[ticket.status] ?? "bg-[#f0f1f3] text-muted"
           }`}
         >
-          {ticket.status}
+          {isBn ? (STATUS_LABEL_BN[ticket.status] ?? ticket.status) : ticket.status}
         </span>
       </div>
       <p className="mt-2 text-[12.5px] font-medium leading-snug text-text">{ticket.description}</p>
