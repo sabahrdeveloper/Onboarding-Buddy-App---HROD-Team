@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminVariantId, getOnboardingVariants, getPhasesForVariant, getTasksForVariant } from "@/lib/data/queries";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Icon } from "@/components/icons/Icon";
 import { BuddyAssignForm } from "@/components/team/BuddyAssignForm";
 import { assignBuddyAsHrAdmin } from "@/actions/admin-employees";
@@ -80,6 +81,87 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   }
   const pct = journeys ? (total > 0 ? Math.round((completed / total) * 100) : 0) : progressPercent(completed);
 
+  // Assessment review — dynamic-journey variants only, and only for
+  // journeys this employee has actually submitted (answer key never
+  // fetched via the authenticated client, same as everywhere else that
+  // touches journey_assessment_questions — service-role client only).
+  interface AnswerReview {
+    questionText: string;
+    type: "mcq" | "open";
+    yourAnswer: string;
+    correctAnswer?: string;
+    correct: boolean;
+    marks: number;
+  }
+  interface SubmissionReview {
+    journeyName: string;
+    score: number;
+    submittedAt: string;
+    answers: AnswerReview[];
+  }
+  let assessmentReviews: SubmissionReview[] = [];
+
+  if (journeys && journeys.length > 0) {
+    const admin = createAdminClient();
+    const journeyIds = journeys.map((j) => j.id);
+    const journeyNameById = new Map(journeys.map((j) => [j.id, j.name]));
+
+    const { data: assessments } = await admin.from("journey_assessments").select("id, journey_id").in("journey_id", journeyIds);
+    const assessmentIds = (assessments ?? []).map((a) => a.id);
+    const journeyIdByAssessmentId = new Map((assessments ?? []).map((a) => [a.id, a.journey_id]));
+
+    if (assessmentIds.length > 0) {
+      const { data: submissions } = await admin
+        .from("journey_assessment_submissions")
+        .select("id, assessment_id, score, submitted_at")
+        .eq("employee_enroll_number", enrollNumber)
+        .in("assessment_id", assessmentIds);
+
+      if (submissions && submissions.length > 0) {
+        const submissionIds = submissions.map((s) => s.id);
+        const [{ data: answers }, { data: questions }] = await Promise.all([
+          admin
+            .from("journey_assessment_answers")
+            .select("submission_id, question_id, answer_text, selected_option_key, marks_awarded")
+            .in("submission_id", submissionIds),
+          admin
+            .from("journey_assessment_questions")
+            .select("id, question_text, type, options, correct_option_key")
+            .in("assessment_id", assessmentIds),
+        ]);
+        const questionById = new Map((questions ?? []).map((q) => [q.id, q]));
+
+        assessmentReviews = submissions.map((sub) => {
+          const journeyId = journeyIdByAssessmentId.get(sub.assessment_id) ?? "";
+          const subAnswers = (answers ?? []).filter((a) => a.submission_id === sub.id);
+          return {
+            journeyName: journeyNameById.get(journeyId) ?? "",
+            score: Number(sub.score),
+            submittedAt: sub.submitted_at,
+            answers: subAnswers.map((a): AnswerReview => {
+              const q = questionById.get(a.question_id);
+              const options = (q?.options as { key: string; text: string }[] | null) ?? null;
+              const yourAnswer =
+                q?.type === "mcq"
+                  ? (options?.find((o) => o.key === a.selected_option_key)?.text ?? a.selected_option_key ?? "")
+                  : (a.answer_text ?? "");
+              const correctAnswer =
+                q?.type === "mcq" ? options?.find((o) => o.key === q.correct_option_key)?.text : undefined;
+              return {
+                questionText: q?.question_text ?? "",
+                type: (q?.type as "mcq" | "open") ?? "mcq",
+                yourAnswer,
+                correctAnswer,
+                correct: a.marks_awarded > 0,
+                marks: a.marks_awarded,
+              };
+            }),
+          };
+        });
+      }
+    }
+  }
+
   return (
     <div>
       <div className="mb-4 mt-0.5 flex items-center gap-3">
@@ -154,6 +236,47 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           action={assignBuddyAsHrAdmin}
         />
       </div>
+
+      {assessmentReviews.length > 0 && (
+        <>
+          <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">
+            {isBn ? "অ্যাসেসমেন্টের উত্তর" : "Assessment Answers"}
+          </div>
+          <div className="mb-4 flex flex-col gap-3">
+            {assessmentReviews.map((review) => (
+              <div key={review.journeyName} className="rounded-card border border-line bg-card p-4 shadow-card">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-en text-[13.5px] font-bold text-text">{review.journeyName}</div>
+                    <div className="text-[11px] font-medium text-muted">
+                      {new Date(review.submittedAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="font-en text-lg font-extrabold text-green-dark">{review.score}</div>
+                </div>
+                <div className="flex flex-col gap-2.5">
+                  {review.answers.map((a, i) => (
+                    <div key={i} className="rounded-xl bg-bg p-3">
+                      <div className="mb-1 text-[12.5px] font-bold text-text">
+                        {i + 1}. {a.questionText}
+                      </div>
+                      <div className={`text-[12px] font-semibold ${a.correct ? "text-green-dark" : "text-err-tx"}`}>
+                        {isBn ? "উত্তর" : "Answer"}: {a.yourAnswer || (isBn ? "(খালি)" : "(blank)")}
+                        {a.correct ? " ✓" : " ✗"}
+                      </div>
+                      {!a.correct && a.correctAnswer && (
+                        <div className="mt-0.5 text-[12px] font-medium text-muted">
+                          {isBn ? "সঠিক উত্তর" : "Correct answer"}: {a.correctAnswer}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">
         {isBn ? "জমা দেওয়া টিকেট" : "Submitted Tickets"}
