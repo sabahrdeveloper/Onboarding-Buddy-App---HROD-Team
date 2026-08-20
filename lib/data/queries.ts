@@ -217,6 +217,19 @@ export const getMySubmittedAssessmentJourneyIds = cache(async () => {
   return new Set((data ?? []).map((s) => s.journey_id));
 });
 
+// Employee's own submitted score per journey — used by the Home page
+// assessment CTA to show "your score is X" once submitted.
+export const getMyAssessmentScoresByJourney = cache(async () => {
+  const supabase = await createClient();
+  const { data: employee } = await getEmployee();
+  if (!employee) return new Map<string, number>();
+  const { data } = await supabase
+    .from("journey_assessment_submissions")
+    .select("journey_id, score")
+    .eq("employee_enroll_number", employee.enroll_number);
+  return new Map((data ?? []).map((s) => [s.journey_id, s.score]));
+});
+
 export const getUnreadHrCompletionCount = cache(async (variantId: string) => {
   const supabase = await createClient();
   const { count } = await supabase

@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminVariantId, getOnboardingVariants, getTasksForVariant } from "@/lib/data/queries";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 import { Icon } from "@/components/icons/Icon";
-import { progressPercent } from "@/lib/business-rules";
 
 export default async function EmployeesPage() {
   const adminVariantId = await getAdminVariantId();
@@ -23,19 +22,26 @@ export default async function EmployeesPage() {
   );
   const isBn = variants.find((v) => v.id === adminVariantId)?.navMode === "resources";
 
-  const total = tasks?.length ?? 0;
+  // Only this variant's active tasks count — an employee provisioned across
+  // two tracks (e.g. Light Engineering's Organization + Sales dual-track)
+  // has employee_task_status rows for BOTH variants' tasks, so an unfiltered
+  // count here was inflating "done" with the other variant's rows entirely.
+  const activeTaskIds = new Set((tasks ?? []).filter((t) => t.active).map((t) => t.id));
+  const total = activeTaskIds.size;
   const enrollNumbers = employees.map((e) => e.enroll_number);
   const { data: statuses } =
     enrollNumbers.length > 0
       ? await supabase
           .from("employee_task_status")
-          .select("employee_enroll_number, done")
+          .select("employee_enroll_number, task_id, done")
           .in("employee_enroll_number", enrollNumbers)
       : { data: [] };
 
   const doneByEmployee = new Map<string, number>();
   for (const s of statuses ?? []) {
-    if (s.done) doneByEmployee.set(s.employee_enroll_number, (doneByEmployee.get(s.employee_enroll_number) ?? 0) + 1);
+    if (s.done && activeTaskIds.has(s.task_id)) {
+      doneByEmployee.set(s.employee_enroll_number, (doneByEmployee.get(s.employee_enroll_number) ?? 0) + 1);
+    }
   }
 
   return (
@@ -51,7 +57,7 @@ export default async function EmployeesPage() {
         <div className="flex flex-col gap-2.5">
           {employees.map((e) => {
             const done = doneByEmployee.get(e.enroll_number) ?? 0;
-            const pct = progressPercent(done);
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
             return (
               <Link
                 key={e.enroll_number}

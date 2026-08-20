@@ -12,12 +12,14 @@ import {
   getProfile,
   getTaskStatuses,
   getTasks,
+  getUnreadNotificationCount,
 } from "@/lib/data/queries";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { combineRole, findSbuAssignments, type SbuHrAssignment } from "@/lib/sbu-matching";
 import { buildCompanyWideContactLists } from "@/lib/contact-lists";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { OverlayProvider } from "@/components/journey/OverlayProvider";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import type {
   AssessmentKey,
   AssessmentTemplate,
@@ -49,6 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { data: sbuAssignmentsData },
     { data: isManagerData },
     adminVariantId,
+    unreadNotificationCount,
   ] = await Promise.all([
     getProfile(),
     getEmployee(),
@@ -60,6 +63,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     supabase.from("sbu_hr_assignments").select("*"),
     supabase.rpc("is_manager"),
     getAdminVariantId(),
+    getUnreadNotificationCount(),
   ]);
 
   // Assessment/milestone templates depend on the variant just resolved above,
@@ -264,6 +268,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       bn={variant.navMode === "resources"}
     >
       <div className="flex min-h-full flex-col" style={themeVars}>
+        {variant.navMode === "resources" && (
+          <div className="fixed right-4 top-4 z-30">
+            <NotificationBell unreadCount={unreadNotificationCount} />
+          </div>
+        )}
         <div className="flex-1 px-4 pb-5 pt-1">{children}</div>
         <BottomNav
           showTeamTab={Boolean(isManagerData)}

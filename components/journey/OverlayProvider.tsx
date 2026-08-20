@@ -152,6 +152,11 @@ export function OverlayProvider({
   }
 
   const journeyById = new Map(journeys.map((j) => [j.id, j]));
+  const getJourneyAssessmentCta = (journeyId: string) => ({
+    available: Boolean(journeyAssessments[journeyId]?.length),
+    submitted: submittedJourneyIds.has(journeyId),
+    onOpen: () => push({ type: "journeyAssessment", journeyId }),
+  });
   const contactByKey = new Map(contacts.map((c) => [c.key, c]));
   const templateByKey = new Map(assessmentTemplates.map((t) => [t.key, t]));
   const submittedByKey = new Map(submittedAssessments.map((s) => [s.assessmentKey, s]));
@@ -370,6 +375,7 @@ export function OverlayProvider({
           tasks={tasks}
           contacts={contacts}
           journeys={dynamicMode ? journeys : undefined}
+          getJourneyAssessmentCta={dynamicMode ? getJourneyAssessmentCta : undefined}
           onBack={pop}
           onOpenTask={(id) => push({ type: "task", taskId: id })}
           bn={isBn}
@@ -381,15 +387,7 @@ export function OverlayProvider({
           phaseKey={current.phaseKey}
           title={dynamicMode ? (journeyById.get(current.phaseKey)?.name ?? "") : undefined}
           sub={dynamicMode ? "" : undefined}
-          journeyAssessmentCta={
-            dynamicMode
-              ? {
-                  available: Boolean(journeyAssessments[current.phaseKey]?.length),
-                  submitted: submittedJourneyIds.has(current.phaseKey),
-                  onOpen: () => push({ type: "journeyAssessment", journeyId: current.phaseKey }),
-                }
-              : undefined
-          }
+          journeyAssessmentCta={dynamicMode ? getJourneyAssessmentCta(current.phaseKey) : undefined}
           tasks={tasks}
           contacts={contacts}
           submitted={dynamicMode ? false : phaseFullySubmitted(current.phaseKey)}

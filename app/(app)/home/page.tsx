@@ -6,7 +6,7 @@ import { MilestoneCard, GrowthMilestoneCard } from "@/components/journey/Milesto
 import { ContinueJourneyButton } from "@/components/journey/ContinueJourneyButton";
 import { ViewWorkListButton } from "@/components/journey/ViewWorkListButton";
 import { HrServicesGrid } from "@/components/journey/HrServicesGrid";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { AssessmentCtaButton } from "@/components/journey/AssessmentCtaButton";
 import { Icon } from "@/components/icons/Icon";
 import {
   getAdminVariantId,
@@ -16,12 +16,12 @@ import {
   getHomeVariant,
   getIsHrAdmin,
   getMilestoneAssessments,
+  getMyAssessmentScoresByJourney,
   getMySubmittedAssessmentJourneyIds,
   getPhasesForVariant,
   getProfile,
   getTaskStatuses,
   getTasks,
-  getUnreadNotificationCount,
 } from "@/lib/data/queries";
 import { ONBOARDING_TRACK_COOKIE, isOnboardingTrack } from "@/lib/onboarding-track";
 import { currentPhase, daysRemainingInPhase, growthReviewUnlocked, progressPercent } from "@/lib/business-rules";
@@ -52,7 +52,6 @@ export default async function HomePage() {
     variant,
     isHrAdmin,
     adminVariantId,
-    unreadNotificationCount,
   ] = await Promise.all([
     getProfile(),
     getEmployee(),
@@ -63,7 +62,6 @@ export default async function HomePage() {
     getEmployeeVariant(),
     getIsHrAdmin(),
     getAdminVariantId(),
-    getUnreadNotificationCount(),
   ]);
   const isMirrorApp = variant.navMode === "resources";
   const phaseMeta = isMirrorApp ? PHASE_META_BN : PHASE_META;
@@ -82,11 +80,13 @@ export default async function HomePage() {
   let growthUnlocked = false;
   let phase: PhaseKey | "180" = "180";
   let hasJourneys = true;
+  let assessmentCta: { state: "locked" | "ready" | "done"; journeyId: string; score: number | null } | null = null;
 
   if (!variant.isDefault) {
-    const [{ data: journeys }, submittedJourneyIds] = await Promise.all([
+    const [{ data: journeys }, submittedJourneyIds, scoresByJourney] = await Promise.all([
       getPhasesForVariant(variant.id, { activeOnly: true }),
       getMySubmittedAssessmentJourneyIds(),
+      getMyAssessmentScoresByJourney(),
     ]);
     hasJourneys = (journeys ?? []).length > 0;
     const activeTasks = (tasks ?? []).filter((t) => t.active);
@@ -147,6 +147,21 @@ export default async function HomePage() {
             ? "অভিনন্দন! আপনি সব কাজ সম্পন্ন করেছেন।"
             : "Congratulations! You've completed all your tasks.";
     }
+
+    // Assessment CTA tracks whichever journey is currently relevant — the
+    // in-progress one, or (once everything's done) the last journey by
+    // sequence, so the card never disappears the moment all tasks are done.
+    const relevantJourney = currentJourney ?? (journeys ?? [])[(journeys ?? []).length - 1];
+    if (relevantJourney) {
+      const counts = doneByJourney.get(relevantJourney.id);
+      const tasksDone = Boolean(counts && counts.total > 0 && counts.done === counts.total);
+      const submitted = submittedJourneyIds.has(relevantJourney.id);
+      assessmentCta = {
+        state: !tasksDone ? "locked" : !submitted ? "ready" : "done",
+        journeyId: relevantJourney.id,
+        score: scoresByJourney.get(relevantJourney.id) ?? null,
+      };
+    }
   } else {
     const phaseById = new Map((tasks ?? []).map((t) => [t.id, t.phase as PhaseKey]));
     const doneByPhase: Record<PhaseKey, { done: number; total: number }> = {
@@ -206,16 +221,13 @@ export default async function HomePage() {
         <img src={variant.logoUrl} alt={variant.name} className="mb-5 mt-2 h-8 w-auto object-contain object-left" />
       )}
 
-      <div className="mb-4 mt-0.5 flex items-start justify-between gap-3">
-        <div>
-          <div className="font-en text-xl font-bold leading-tight text-text">
-            আসসালামু আলাইকুম, <b>{firstName}</b>
-          </div>
-          <div className="mt-1 text-sm font-medium leading-snug text-muted">
-            আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা শুরু হয়েছে।
-          </div>
+      <div className="mb-4 mt-0.5">
+        <div className="font-en text-xl font-bold leading-tight text-text">
+          আসসালামু আলাইকুম, <b>{firstName}</b>
         </div>
-        {isMirrorApp && <NotificationBell unreadCount={unreadNotificationCount} />}
+        <div className="mt-1 text-sm font-medium leading-snug text-muted">
+          আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা শুরু হয়েছে।
+        </div>
       </div>
 
       <div className="mb-3 rounded-card border border-line bg-card p-4 shadow-card">
@@ -271,6 +283,14 @@ export default async function HomePage() {
 
       {phase !== "" && <ContinueJourneyButton currentPhase={phase} bn={isMirrorApp} />}
       <ViewWorkListButton variant="primary" bn={isMirrorApp} />
+      {assessmentCta && (
+        <AssessmentCtaButton
+          state={assessmentCta.state}
+          journeyId={assessmentCta.journeyId}
+          score={assessmentCta.score}
+          bn={isMirrorApp}
+        />
+      )}
 
       {isHrAdmin && (
         <div className="mt-3 flex gap-3">
