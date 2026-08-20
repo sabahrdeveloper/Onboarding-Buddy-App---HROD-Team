@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isTestEmployee } from "@/lib/test-employees";
 
 export interface LeaderboardEntry {
   enrollNumber: string;
@@ -25,6 +26,7 @@ export async function getLeaderboard(variantId: string): Promise<LeaderboardEntr
 
   const byEmployee = new Map<string, { score: number; lastSubmittedAt: string }>();
   for (const s of submissions) {
+    if (isTestEmployee(s.employee_enroll_number)) continue;
     const existing = byEmployee.get(s.employee_enroll_number);
     if (!existing) {
       byEmployee.set(s.employee_enroll_number, { score: s.score, lastSubmittedAt: s.submitted_at });

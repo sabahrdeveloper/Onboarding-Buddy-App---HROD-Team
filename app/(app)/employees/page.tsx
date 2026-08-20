@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAdminVariantId, getOnboardingVariants, getTasksForVariant } from "@/lib/data/queries";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
+import { isTestEmployee } from "@/lib/test-employees";
 import { Icon } from "@/components/icons/Icon";
 
 export default async function EmployeesPage() {
@@ -18,7 +19,7 @@ export default async function EmployeesPage() {
 
   const variants = (variantsData ?? []).map(mapOnboardingVariant);
   const employees = (allEmployees ?? []).filter(
-    (e) => resolveVariantForSbu(e.sbu, variants).id === adminVariantId,
+    (e) => resolveVariantForSbu(e.sbu, variants).id === adminVariantId && !isTestEmployee(e.enroll_number),
   );
   const isBn = variants.find((v) => v.id === adminVariantId)?.navMode === "resources";
 

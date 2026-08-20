@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { markCompletionRead } from "@/actions/admin-completions";
 import { getOnboardingVariants } from "@/lib/data/queries";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
+import { isTestEmployee } from "@/lib/test-employees";
 
 export default async function AdminCompletionsPage() {
   const supabase = await createClient();
@@ -37,7 +38,9 @@ export default async function AdminCompletionsPage() {
     <div>
       <div className="mb-3 font-en text-[15px] font-bold text-text">Journey Completions</div>
       <div className="flex flex-col gap-2">
-        {(notifications ?? []).map((n) => {
+        {(notifications ?? [])
+          .filter((n) => !isTestEmployee(n.employee_enroll_number))
+          .map((n) => {
           const emp = employeeByEnroll.get(n.employee_enroll_number);
           return (
             <div key={n.id} className={`rounded-card border p-3.5 shadow-card ${n.is_read ? "border-line bg-card" : "border-[#cde9d5] bg-[#fafdf9]"}`}>
@@ -65,7 +68,7 @@ export default async function AdminCompletionsPage() {
             </div>
           );
         })}
-        {(notifications ?? []).length === 0 && (
+        {(notifications ?? []).filter((n) => !isTestEmployee(n.employee_enroll_number)).length === 0 && (
           <div className="rounded-card border border-line bg-card p-4 text-center text-sm font-medium text-muted shadow-card">
             No journey completions yet.
           </div>
