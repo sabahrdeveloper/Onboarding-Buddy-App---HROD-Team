@@ -24,9 +24,18 @@ export async function getLeaderboard(variantId: string): Promise<LeaderboardEntr
     .eq("variant_id", variantId);
   if (!submissions || submissions.length === 0) return [];
 
+  // HR admins never appear on the leaderboard even if they take the
+  // assessment — this is an employee ranking, not an admin one.
+  const submitterEnrolls = [...new Set(submissions.map((s) => s.employee_enroll_number))];
+  const { data: submitterProfiles } = await admin
+    .from("profiles")
+    .select("enroll_number, is_hr_admin")
+    .in("enroll_number", submitterEnrolls);
+  const hrAdminEnrolls = new Set((submitterProfiles ?? []).filter((p) => p.is_hr_admin).map((p) => p.enroll_number));
+
   const byEmployee = new Map<string, { score: number; lastSubmittedAt: string }>();
   for (const s of submissions) {
-    if (isTestEmployee(s.employee_enroll_number)) continue;
+    if (isTestEmployee(s.employee_enroll_number) || hrAdminEnrolls.has(s.employee_enroll_number)) continue;
     const existing = byEmployee.get(s.employee_enroll_number);
     if (!existing) {
       byEmployee.set(s.employee_enroll_number, { score: s.score, lastSubmittedAt: s.submitted_at });
