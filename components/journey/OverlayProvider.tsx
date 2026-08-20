@@ -152,11 +152,18 @@ export function OverlayProvider({
   }
 
   const journeyById = new Map(journeys.map((j) => [j.id, j]));
-  const getJourneyAssessmentCta = (journeyId: string) => ({
-    available: Boolean(journeyAssessments[journeyId]?.length),
-    submitted: submittedJourneyIds.has(journeyId),
-    onOpen: () => push({ type: "journeyAssessment", journeyId }),
-  });
+  const getJourneyAssessmentCta = (journeyId: string) => {
+    const journeyTasks = tasks.filter((t) => t.phase === journeyId);
+    const tasksDone = journeyTasks.length > 0 && journeyTasks.every((t) => t.done);
+    return {
+      // Only offered once every task in the journey is actually done — a
+      // question set existing isn't enough (that was the bug: the CTA
+      // showed as active/clickable regardless of task completion).
+      available: Boolean(journeyAssessments[journeyId]?.length) && tasksDone,
+      submitted: submittedJourneyIds.has(journeyId),
+      onOpen: () => push({ type: "journeyAssessment", journeyId }),
+    };
+  };
   const contactByKey = new Map(contacts.map((c) => [c.key, c]));
   const templateByKey = new Map(assessmentTemplates.map((t) => [t.key, t]));
   const submittedByKey = new Map(submittedAssessments.map((s) => [s.assessmentKey, s]));
