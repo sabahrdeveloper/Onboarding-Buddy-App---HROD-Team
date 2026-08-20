@@ -37,18 +37,35 @@ export async function markTaskDone(taskId: string): Promise<MarkTaskDoneResult> 
   const { data: profile } = await supabase.from("profiles").select("enroll_number").eq("id", user.id).single();
   if (!profile) return { error: "প্রোফাইল পাওয়া যায়নি।" };
 
-  // BRU-05: scoped to the caller's own enroll_number — RLS enforces this too,
-  // this is a defense-in-depth check against a tampered taskId.
-  const { data: updated, error } = await supabase
+  // Upsert, not update-only: an employee reassigned to a different variant
+  // (e.g. SBU changed by an admin after they'd already signed up) has no
+  // employee_task_status row for that variant's tasks — the normal signup
+  // flow is the only thing that ever inserts one. A plain UPDATE against a
+  // missing row silently matches zero rows, so the click appeared to work
+  // (optimistic UI) but reverted on the next refresh since nothing was ever
+  // written. Upserting makes this self-healing regardless of how the row
+  // came to be missing. BRU-05: scoped to the caller's own enroll_number —
+  // RLS enforces this too, this is a defense-in-depth check against a
+  // tampered taskId.
+  const { data: existing } = await supabase
     .from("employee_task_status")
-    .update({ done: true, done_date: new Date().toISOString() })
+    .select("done")
     .eq("employee_enroll_number", profile.enroll_number)
     .eq("task_id", taskId)
-    .eq("done", false)
-    .select("task_id");
+    .maybeSingle();
+  if (existing?.done) return { success: true, phaseComplete: false };
+
+  const { error } = await supabase.from("employee_task_status").upsert(
+    {
+      employee_enroll_number: profile.enroll_number,
+      task_id: taskId,
+      done: true,
+      done_date: new Date().toISOString(),
+    },
+    { onConflict: "employee_enroll_number,task_id" },
+  );
 
   if (error) return { error: "কাজটি সম্পন্ন করা যায়নি। একটু পর আবার চেষ্টা করুন।" };
-  if (!updated || updated.length === 0) return { success: true, phaseComplete: false };
 
   // Independent of each other — fetch concurrently and cross-reference in JS
   // instead of waiting on the phase's task IDs before fetching statuses.
