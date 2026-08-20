@@ -74,8 +74,14 @@ export async function markTaskDone(taskId: string): Promise<MarkTaskDoneResult> 
     supabase.from("employee_task_status").select("task_id, done").eq("employee_enroll_number", profile.enroll_number),
   ]);
   const phaseTaskIds = new Set((phaseTasks ?? []).map((t) => t.id));
-  const phaseStatuses = (allStatuses ?? []).filter((s) => phaseTaskIds.has(s.task_id));
-  const phaseComplete = phaseStatuses.length > 0 && phaseStatuses.every((s) => s.done);
+  // A task with no status row at all (e.g. one never touched yet) must
+  // count as "not done" — filtering statuses down to only the rows that
+  // exist and checking .every() on that filtered set silently ignores
+  // missing rows instead of treating them as incomplete, which is what
+  // made the very first task marked done look like the whole phase was
+  // complete for anyone missing most of their status rows.
+  const doneTaskIds = new Set((allStatuses ?? []).filter((s) => s.done).map((s) => s.task_id));
+  const phaseComplete = phaseTaskIds.size > 0 && [...phaseTaskIds].every((id) => doneTaskIds.has(id));
 
   // Sales Onboarding / dynamic-journey variants only — the default variant's
   // fixed 30/60/90 phases don't need an HR ping per journey completion.
