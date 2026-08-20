@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { DownloadReportModal } from "@/components/admin/DownloadReportModal";
 
 export default async function AdminAssessmentsPage() {
   const supabase = await createClient();
@@ -44,7 +45,10 @@ export default async function AdminAssessmentsPage() {
 
   return (
     <div>
-      <div className="mb-3 font-en text-[15px] font-bold text-text">Journey Assessments</div>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="font-en text-[15px] font-bold text-text">Journey Assessments</div>
+        <DownloadReportModal journeys={journeys ?? []} />
+      </div>
       <div className="flex flex-col gap-2">
         {(journeys ?? []).map((j) => (
           <Link
