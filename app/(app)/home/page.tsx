@@ -226,7 +226,11 @@ export default async function HomePage() {
           আসসালামু আলাইকুম, <b>{firstName}</b>
         </div>
         <div className="mt-1 text-sm font-medium leading-snug text-muted">
-          আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা শুরু হয়েছে।
+          {variant.isDefault
+            ? "আপনার প্রথম ১৮০ দিনের সম্পূর্ণ পথচলা শুরু হয়েছে।"
+            : isMirrorApp
+              ? "আপনার Sales Onboarding যাত্রা শুরু হয়েছে।"
+              : "Your Sales Onboarding journey has begun."}
         </div>
       </div>
 
