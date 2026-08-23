@@ -7,6 +7,41 @@ import { deriveSyntheticEmail, MIN_PASSWORD_LENGTH } from "@/lib/auth/credential
 import { getPeopleDeskEmployee } from "@/lib/peopledesk";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 
+/**
+ * Ensures an employee has an employee_task_status row for every task in
+ * their current onboarding variant(s). Self-healing: covers first-time
+ * signup, and also re-syncs an existing account whose sbu was reassigned
+ * after their initial signup (variant membership can change; task rows
+ * from signup time don't update themselves otherwise).
+ */
+async function syncTaskProvisioning(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  enrollNumber: string,
+  sbu: string | null,
+) {
+  const { data: variantsData } = await supabase.from("onboarding_variants").select("*");
+  const variants = (variantsData ?? []).map(mapOnboardingVariant);
+  const homeVariant = resolveVariantForSbu(sbu, variants);
+  const variantIds = homeVariant.isDefault
+    ? [homeVariant.id]
+    : [homeVariant.id, ...variants.filter((v) => v.isDefault).map((v) => v.id)];
+
+  const { data: tasks } = await supabase.from("onboarding_tasks").select("id").in("variant_id", variantIds);
+  if (!tasks || tasks.length === 0) return;
+
+  const { data: existing } = await supabase
+    .from("employee_task_status")
+    .select("task_id")
+    .eq("employee_enroll_number", enrollNumber);
+  const existingIds = new Set((existing ?? []).map((r) => r.task_id));
+  const missing = tasks.filter((t) => !existingIds.has(t.id));
+  if (missing.length === 0) return;
+
+  await supabase.from("employee_task_status").insert(
+    missing.map((t) => ({ employee_enroll_number: enrollNumber, task_id: t.id })),
+  );
+}
+
 async function siteOrigin() {
   const h = await headers();
   return process.env.NEXT_PUBLIC_SITE_URL ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
@@ -124,19 +159,17 @@ export async function loginOrCreateProfile(_prevState: LoginState, formData: For
     // also run the normal/default onboarding alongside it (see
     // /select-onboarding) and need status rows for both task sets — a
     // default-variant employee only ever gets the one.
-    const { data: variantsData } = await supabase.from("onboarding_variants").select("*");
-    const variants = (variantsData ?? []).map(mapOnboardingVariant);
-    const homeVariant = resolveVariantForSbu(peopleDeskEmployee.sbu, variants);
-    const variantIds = homeVariant.isDefault
-      ? [homeVariant.id]
-      : [homeVariant.id, ...variants.filter((v) => v.isDefault).map((v) => v.id)];
-
-    const { data: tasks } = await supabase.from("onboarding_tasks").select("id").in("variant_id", variantIds);
-    if (tasks && tasks.length > 0) {
-      await supabase.from("employee_task_status").insert(
-        tasks.map((t) => ({ employee_enroll_number: enrollNumber, task_id: t.id })),
-      );
-    }
+    await syncTaskProvisioning(supabase, enrollNumber, peopleDeskEmployee.sbu);
+  } else {
+    // Existing account, fast path: re-sync in case their sbu was reassigned
+    // (e.g. moved to a different variant) since their last provisioning —
+    // otherwise they'd be stuck with a stale/wrong task set forever.
+    const { data: employee } = await supabase
+      .from("employees")
+      .select("sbu")
+      .eq("enroll_number", enrollNumber)
+      .maybeSingle();
+    await syncTaskProvisioning(supabase, enrollNumber, employee?.sbu ?? null);
   }
 
   redirect("/home");

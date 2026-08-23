@@ -117,11 +117,15 @@ export async function adminSetTaskStatus(
   done: boolean,
 ): Promise<ActionResult> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("employee_task_status")
-    .update({ done, done_date: done ? new Date().toISOString() : null })
-    .eq("employee_enroll_number", employeeEnrollNumber)
-    .eq("task_id", taskId);
+  const { error } = await supabase.from("employee_task_status").upsert(
+    {
+      employee_enroll_number: employeeEnrollNumber,
+      task_id: taskId,
+      done,
+      done_date: done ? new Date().toISOString() : null,
+    },
+    { onConflict: "employee_enroll_number,task_id" },
+  );
   if (error) return { error: "Update করা যায়নি — admin অনুমতি প্রয়োজন।" };
 
   revalidatePath(`/team/${employeeEnrollNumber}`);
