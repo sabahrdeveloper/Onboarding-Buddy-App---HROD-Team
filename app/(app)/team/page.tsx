@@ -25,10 +25,21 @@ export default async function TeamPage() {
   }
 
   const enrollNumbers = subordinates.map((s) => s.enroll_number);
-  const { data: statuses } = await supabase
-    .from("employee_task_status")
-    .select("employee_enroll_number, done")
-    .in("employee_enroll_number", enrollNumbers);
+  // PostgREST caps a single select at 1000 rows — paged until exhausted so a
+  // manager with a large team (or dual-track subordinates) can't silently
+  // undercount completion the same way the Employees tab did.
+  const statuses: { employee_enroll_number: string; done: boolean }[] = [];
+  const PAGE_SIZE = 1000;
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data: page } = await supabase
+      .from("employee_task_status")
+      .select("employee_enroll_number, done")
+      .in("employee_enroll_number", enrollNumbers)
+      .range(from, from + PAGE_SIZE - 1);
+    if (!page || page.length === 0) break;
+    statuses.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
 
   const total = tasks?.length ?? 50;
   const doneByEmployee = new Map<string, number>();

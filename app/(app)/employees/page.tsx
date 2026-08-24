@@ -30,13 +30,24 @@ export default async function EmployeesPage() {
   const activeTaskIds = new Set((tasks ?? []).filter((t) => t.active).map((t) => t.id));
   const total = activeTaskIds.size;
   const enrollNumbers = employees.map((e) => e.enroll_number);
-  const { data: statuses } =
-    enrollNumbers.length > 0
-      ? await supabase
-          .from("employee_task_status")
-          .select("employee_enroll_number, task_id, done")
-          .in("employee_enroll_number", enrollNumbers)
-      : { data: [] };
+  // PostgREST caps a single select at 1000 rows — with ~25 employees x up to
+  // 64 task rows each (dual-track variants), this list was silently
+  // truncating and undercounting completion for whoever fell past row 1000.
+  // Paged until exhausted so growth in either dimension can't reintroduce it.
+  const statuses: { employee_enroll_number: string; task_id: string; done: boolean }[] = [];
+  if (enrollNumbers.length > 0) {
+    const PAGE_SIZE = 1000;
+    for (let from = 0; ; from += PAGE_SIZE) {
+      const { data: page } = await supabase
+        .from("employee_task_status")
+        .select("employee_enroll_number, task_id, done")
+        .in("employee_enroll_number", enrollNumbers)
+        .range(from, from + PAGE_SIZE - 1);
+      if (!page || page.length === 0) break;
+      statuses.push(...page);
+      if (page.length < PAGE_SIZE) break;
+    }
+  }
 
   const doneByEmployee = new Map<string, number>();
   for (const s of statuses ?? []) {
