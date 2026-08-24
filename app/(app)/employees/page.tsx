@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getAdminVariantId, getOnboardingVariants, getTasksForVariant } from "@/lib/data/queries";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 import { isTestEmployee } from "@/lib/test-employees";
@@ -56,10 +57,45 @@ export default async function EmployeesPage() {
     }
   }
 
+  const completedCount = employees.filter((e) => total > 0 && (doneByEmployee.get(e.enroll_number) ?? 0) >= total).length;
+  const notCompletedCount = employees.length - completedCount;
+
+  // journey_assessment_submissions RLS only permits self-select — an HR
+  // admin has no read grant on it (unlike employee_task_status), so this
+  // needs the service-role client, same as the per-employee answer review.
+  const { data: submissions } =
+    enrollNumbers.length > 0
+      ? await createAdminClient()
+          .from("journey_assessment_submissions")
+          .select("employee_enroll_number")
+          .eq("variant_id", adminVariantId)
+          .in("employee_enroll_number", enrollNumbers)
+      : { data: [] };
+  const assessmentTakenCount = new Set((submissions ?? []).map((s) => s.employee_enroll_number)).size;
+
   return (
     <div>
       <div className="mb-1 mt-0.5 font-en text-xl font-bold text-text">{isBn ? "কর্মীরা" : "Employees"}</div>
       <div className="mb-4 text-sm font-medium text-muted">{employees.length} জন এই variant-এ onboarding করছেন।</div>
+
+      <div className="mb-4 grid grid-cols-2 gap-2.5">
+        <div className="rounded-card border border-line bg-card p-3.5 shadow-card">
+          <div className="font-en text-xl font-extrabold text-text">{employees.length}</div>
+          <div className="text-[11.5px] font-semibold text-muted">{isBn ? "মোট Onboarding" : "Total Onboarding"}</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-3.5 shadow-card">
+          <div className="font-en text-xl font-extrabold text-green-dark">{completedCount}</div>
+          <div className="text-[11.5px] font-semibold text-muted">{isBn ? "সব কাজ সম্পন্ন" : "All Tasks Completed"}</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-3.5 shadow-card">
+          <div className="font-en text-xl font-extrabold text-warn-tx">{notCompletedCount}</div>
+          <div className="text-[11.5px] font-semibold text-muted">{isBn ? "কাজ বাকি" : "Not Completed"}</div>
+        </div>
+        <div className="rounded-card border border-line bg-card p-3.5 shadow-card">
+          <div className="font-en text-xl font-extrabold text-text">{assessmentTakenCount}</div>
+          <div className="text-[11.5px] font-semibold text-muted">{isBn ? "Assessment দিয়েছেন" : "Assessment Taken"}</div>
+        </div>
+      </div>
 
       {employees.length === 0 ? (
         <div className="rounded-card border border-line bg-card p-5 text-center shadow-card">
