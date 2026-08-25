@@ -1,4 +1,28 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+// PostgREST caps a single select at 1000 rows — employee_task_status is
+// company-wide and already past that, so every report reading it must page
+// through, not do one .select() and trust it came back complete. This was
+// the root cause of every report below silently showing 0/0 for most
+// employees.
+async function fetchAllTaskStatuses(admin: Admin) {
+  const rows: { employee_enroll_number: string; task_id: string; done: boolean }[] = [];
+  const PAGE_SIZE = 1000;
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await admin
+      .from("employee_task_status")
+      .select("employee_enroll_number, task_id, done")
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    rows.push(...data);
+    if (data.length < PAGE_SIZE) break;
+  }
+  return rows;
+}
 
 // Remote MCP endpoint — lives on the same always-on Vercel deployment as the
 // app, so it works even when the dev's own machine is off. Bearer-token gated
@@ -11,6 +35,15 @@ const TOOLS = [
     name: "onboarding_progress_report",
     description: "Every employee's onboarding task completion (done/total), optionally filtered by SBU.",
     inputSchema: { type: "object", properties: { sbu: { type: "string", description: "Optional SBU filter" } } },
+  },
+  {
+    name: "sales_onboarding_report",
+    description:
+      "Full report on a non-default onboarding variant (e.g. Sales Onboarding / Akij Light Engineering): per-employee task completion scoped to that variant only, per-journey breakdown, and assessment status. Defaults to the first non-default variant if variant_slug is omitted.",
+    inputSchema: {
+      type: "object",
+      properties: { variant_slug: { type: "string", description: "e.g. 'akij-light-engineering'; default: the (only) non-default variant" } },
+    },
   },
   {
     name: "employee_kpi_report",
@@ -51,11 +84,10 @@ async function onboardingProgressReport({ sbu }: { sbu?: string }) {
   const { data: employees, error } = await q;
   if (error) throw new Error(error.message);
 
-  const { data: statuses, error: statusError } = await supabase.from("employee_task_status").select("employee_enroll_number, done");
-  if (statusError) throw new Error(statusError.message);
+  const statuses = await fetchAllTaskStatuses(supabase);
   const doneCount = new Map<string, number>();
   const totalCount = new Map<string, number>();
-  for (const s of statuses ?? []) {
+  for (const s of statuses) {
     totalCount.set(s.employee_enroll_number, (totalCount.get(s.employee_enroll_number) ?? 0) + 1);
     if (s.done) doneCount.set(s.employee_enroll_number, (doneCount.get(s.employee_enroll_number) ?? 0) + 1);
   }
@@ -68,6 +100,86 @@ async function onboardingProgressReport({ sbu }: { sbu?: string }) {
     tasks_done: doneCount.get(e.enroll_number) ?? 0,
     tasks_total: totalCount.get(e.enroll_number) ?? 0,
   }));
+}
+
+// Reports on a non-default onboarding variant specifically (e.g. "Sales
+// Onboarding" / Akij Light Engineering) — scoped to that variant's own
+// tasks only, not mixed with the default 50-task checklist a dual-track
+// employee may also be provisioned for. Covers what onboarding_progress_report
+// can't: which variant, per-journey breakdown, and assessment status.
+async function salesOnboardingReport({ variant_slug }: { variant_slug?: string }) {
+  const admin = createAdminClient();
+
+  const { data: variantsData, error: variantsError } = await admin.from("onboarding_variants").select("*");
+  if (variantsError) throw new Error(variantsError.message);
+  const variants = (variantsData ?? []).map(mapOnboardingVariant);
+  const variant = variant_slug
+    ? variants.find((v) => v.slug === variant_slug)
+    : variants.find((v) => !v.isDefault);
+  if (!variant) throw new Error(variant_slug ? `Unknown variant slug: ${variant_slug}` : "No non-default variant configured");
+
+  const { data: allEmployees, error: employeesError } = await admin.from("employees").select("enroll_number, name, sbu, department");
+  if (employeesError) throw new Error(employeesError.message);
+  const employees = (allEmployees ?? []).filter((e) => resolveVariantForSbu(e.sbu, variants).id === variant.id);
+  const enrollNumbers = employees.map((e) => e.enroll_number);
+
+  const [{ data: tasks, error: tasksError }, { data: phases, error: phasesError }] = await Promise.all([
+    admin.from("onboarding_tasks").select("id, phase, active").eq("variant_id", variant.id),
+    admin.from("onboarding_phases").select("id, name, sequence").eq("variant_id", variant.id).order("sequence"),
+  ]);
+  if (tasksError) throw new Error(tasksError.message);
+  if (phasesError) throw new Error(phasesError.message);
+  const activeTaskIds = new Set((tasks ?? []).filter((t) => t.active).map((t) => t.id));
+  const phaseNameById = new Map((phases ?? []).map((p) => [p.id, p.name]));
+  const totalTasks = activeTaskIds.size;
+
+  const allStatuses = await fetchAllTaskStatuses(admin);
+  const statusesByEmployee = new Map<string, Set<string>>();
+  for (const s of allStatuses) {
+    if (!s.done || !activeTaskIds.has(s.task_id) || !enrollNumbers.includes(s.employee_enroll_number)) continue;
+    if (!statusesByEmployee.has(s.employee_enroll_number)) statusesByEmployee.set(s.employee_enroll_number, new Set());
+    statusesByEmployee.get(s.employee_enroll_number)!.add(s.task_id);
+  }
+
+  const { data: submissions, error: submissionsError } = await admin
+    .from("journey_assessment_submissions")
+    .select("employee_enroll_number, score, submitted_at")
+    .eq("variant_id", variant.id);
+  if (submissionsError) throw new Error(submissionsError.message);
+  const submissionByEmployee = new Map((submissions ?? []).map((s) => [s.employee_enroll_number, s]));
+
+  const employeeReports = employees.map((e) => {
+    const doneIds = statusesByEmployee.get(e.enroll_number) ?? new Set<string>();
+    const byPhase: Record<string, { done: number; total: number }> = {};
+    for (const t of tasks ?? []) {
+      if (!activeTaskIds.has(t.id)) continue;
+      const phaseName = phaseNameById.get(t.phase) ?? t.phase;
+      if (!byPhase[phaseName]) byPhase[phaseName] = { done: 0, total: 0 };
+      byPhase[phaseName].total++;
+      if (doneIds.has(t.id)) byPhase[phaseName].done++;
+    }
+    const submission = submissionByEmployee.get(e.enroll_number);
+    return {
+      enroll_number: e.enroll_number,
+      name: e.name,
+      sbu: e.sbu,
+      department: e.department,
+      tasks_done: doneIds.size,
+      tasks_total: totalTasks,
+      by_journey: byPhase,
+      assessment_taken: Boolean(submission),
+      assessment_score: submission?.score ?? null,
+      assessment_submitted_at: submission?.submitted_at ?? null,
+    };
+  });
+
+  return {
+    variant: { slug: variant.slug, name: variant.name },
+    employee_count: employees.length,
+    completed_all_tasks: employeeReports.filter((e) => e.tasks_total > 0 && e.tasks_done >= e.tasks_total).length,
+    assessment_taken_count: employeeReports.filter((e) => e.assessment_taken).length,
+    employees: employeeReports,
+  };
 }
 
 async function employeeKpiReport({ period_month }: { period_month?: string }) {
@@ -129,6 +241,7 @@ async function queryTable({ table, columns, filters, limit }: { table: string; c
 
 const HANDLERS: Record<string, (args: Record<string, unknown>) => Promise<unknown>> = {
   onboarding_progress_report: onboardingProgressReport,
+  sales_onboarding_report: salesOnboardingReport as (args: Record<string, unknown>) => Promise<unknown>,
   employee_kpi_report: employeeKpiReport,
   help_ticket_report: helpTicketReport,
   employee_list: employeeList,
