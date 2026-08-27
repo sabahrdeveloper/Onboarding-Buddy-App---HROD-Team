@@ -22,12 +22,15 @@ export default async function SelectOnboardingPage() {
   } = await getAuthUser();
   if (!user) redirect("/login");
 
-  const [{ data: employee }, homeVariant, { data: variantsData }, unreadNotificationCount] = await Promise.all([
+  const supabase = await createClient();
+  const [{ data: employee }, homeVariant, { data: variantsData }, unreadNotificationCount, { data: profile }] = await Promise.all([
     getEmployee(),
     getHomeVariant(),
     getOnboardingVariants(),
     getUnreadNotificationCount(),
+    supabase.from("profiles").select("is_super_admin").eq("id", user.id).single(),
   ]);
+  const isSuperAdmin = Boolean(profile?.is_super_admin);
 
   // Only relevant for an employee whose home variant runs two tracks — a
   // default-variant employee has nothing to choose, straight to /home.
@@ -36,7 +39,6 @@ export default async function SelectOnboardingPage() {
   const variants = (variantsData ?? []).map(mapOnboardingVariant);
   const defaultVariant = variants.find((v) => v.isDefault) ?? homeVariant;
 
-  const supabase = await createClient();
   const [{ data: orgTasks }, { data: salesTasks }, { data: statuses }] = await Promise.all([
     getTasksForVariant(defaultVariant.id),
     getTasksForVariant(homeVariant.id),
@@ -61,7 +63,16 @@ export default async function SelectOnboardingPage() {
         <Icon name="user" size={17} />
       </Link>
 
-      <div className="absolute right-5 top-5">
+      <div className="absolute right-5 top-5 flex items-center gap-2">
+        {isSuperAdmin && (
+          <Link
+            href="/super-admin/notifications"
+            aria-label="Broadcast notification"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-card text-text shadow-card"
+          >
+            <Icon name="mail" size={17} />
+          </Link>
+        )}
         <NotificationBell unreadCount={unreadNotificationCount} />
       </div>
 

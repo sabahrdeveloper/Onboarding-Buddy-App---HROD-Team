@@ -50,6 +50,7 @@ interface OverlayContextValue {
   openHelp: (relatedTaskId?: string) => void;
   openContact: (contactKey: string) => void;
   openJourneyAssessment: (journeyId: string) => void;
+  openAssessment: (key: AssessmentKey) => void;
   notify: (text: string, icon?: IconName) => void;
   taskCount: number;
 }
@@ -371,6 +372,7 @@ export function OverlayProvider({
         openHelp: (relatedTaskId) => push({ type: "help", relatedTaskId }),
         openContact: (contactKey) => push({ type: "contact", contactKey }),
         openJourneyAssessment: (journeyId) => push({ type: "journeyAssessment", journeyId }),
+        openAssessment: (key) => push({ type: "assessment", key }),
         notify: showToast,
         taskCount: tasks.length,
       }}

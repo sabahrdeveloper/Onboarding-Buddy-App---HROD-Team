@@ -39,11 +39,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-full flex-col" style={themeVars}>
-      {variant.navMode === "resources" && (
-        <div className="fixed right-4 top-4 z-30">
-          <NotificationBell unreadCount={unreadNotificationCount} />
-        </div>
-      )}
+      <div className="fixed right-4 top-4 z-30">
+        <NotificationBell unreadCount={unreadNotificationCount} />
+      </div>
       <div className="flex-1 px-4 pb-5 pt-1">{children}</div>
       <BottomNav
         showTeamTab={Boolean(isManagerData)}

@@ -7,6 +7,7 @@ import { ContinueJourneyButton } from "@/components/journey/ContinueJourneyButto
 import { ViewWorkListButton } from "@/components/journey/ViewWorkListButton";
 import { HrServicesGrid } from "@/components/journey/HrServicesGrid";
 import { AssessmentCtaButton } from "@/components/journey/AssessmentCtaButton";
+import { AssessmentListSection, type AssessmentListItem } from "@/components/journey/AssessmentListSection";
 import { Icon } from "@/components/icons/Icon";
 import {
   getAdminVariantId,
@@ -81,6 +82,7 @@ export default async function HomePage() {
   let phase: PhaseKey | "180" = "180";
   let hasJourneys = true;
   let assessmentCta: { state: "locked" | "ready" | "done"; journeyId: string; score: number | null } | null = null;
+  let assessmentListItems: AssessmentListItem[] = [];
 
   if (!variant.isDefault) {
     const [{ data: journeys }, submittedJourneyIds, scoresByJourney] = await Promise.all([
@@ -193,6 +195,16 @@ export default async function HomePage() {
       "30": fullySubmitted("30"),
       "60": fullySubmitted("60"),
       "90": fullySubmitted("90"),
+    });
+
+    assessmentListItems = (["30", "60", "90"] as const).map((key) => {
+      const counts = doneByPhase[key];
+      const tasksDone = counts.total > 0 && counts.done === counts.total;
+      return {
+        key,
+        title: phaseMeta[key].title,
+        state: !tasksDone ? "locked" : !fullySubmitted(key) ? "ready" : "done",
+      };
     });
 
     milestone =
@@ -321,6 +333,8 @@ export default async function HomePage() {
           নোটিফিকেশন পাঠান
         </Link>
       )}
+
+      {variant.isDefault && <AssessmentListSection items={assessmentListItems} bn={isMirrorApp} />}
 
       <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">{isMirrorApp ? "HR সেবা" : "HR Services"}</div>
       <HrServicesGrid

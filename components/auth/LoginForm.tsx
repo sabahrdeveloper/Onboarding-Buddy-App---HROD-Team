@@ -70,6 +70,9 @@ export function LoginForm() {
           <p className="mt-1.5 text-[12px] font-medium text-muted">
             প্রথমবার লগইন করলে এই পাসওয়ার্ডটিই ভবিষ্যতের জন্য সেট হয়ে যাবে।
           </p>
+          <p className="mt-1 text-[12px] font-medium text-muted">
+            পাসওয়ার্ড অবশ্যই কমপক্ষে ৮ অক্ষরের হতে হবে।
+          </p>
         </div>
 
         <label className="flex items-center gap-2.5 font-en text-[13px] font-medium text-text">
