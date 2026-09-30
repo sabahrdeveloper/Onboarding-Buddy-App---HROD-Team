@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEmployee, getEmployeeVariant } from "@/lib/data/queries";
@@ -83,7 +84,14 @@ export async function submitJourneyAssessment(
 
   await admin.from("journey_assessment_answers").insert(answerRows.map((r) => ({ ...r, submission_id: submission.id })));
 
-  await syncLeaderboardAfterSubmission(variant.id);
+  // Leaderboard housekeeping (rank recompute, podium photo cleanup, top-3
+  // notifications) is best-effort side-effect work, not something the
+  // employee needs to wait on — it was previously awaited inline, adding
+  // up to a dozen sequential round trips to the critical submit path and
+  // making the "Assessment Submitted" confirmation feel like it hung,
+  // especially over higher-latency network paths. Runs after the response
+  // is sent instead.
+  after(() => syncLeaderboardAfterSubmission(variant.id));
 
   revalidatePath("/home");
   revalidatePath("/journey");
