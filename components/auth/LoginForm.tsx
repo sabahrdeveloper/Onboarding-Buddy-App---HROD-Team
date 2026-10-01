@@ -150,7 +150,23 @@ export function LoginForm() {
         <div className="h-px flex-1 bg-line" />
       </div>
 
-      <form action="/api/auth/google" method="get">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          setError(null);
+          fetch("/api/auth/google", { method: "POST" })
+            .then((res) => res.json())
+            .then((data) => {
+              if (!data.ok || !data.url) {
+                setError("Google সাইন-ইন শুরু করা যায়নি। আবার চেষ্টা করুন।");
+                return;
+              }
+              sessionStorage.setItem("ob_google_pkce_verifier", data.verifier);
+              window.location.href = data.url;
+            })
+            .catch(() => setError("Google সাইন-ইন শুরু করা যায়নি। আবার চেষ্টা করুন।"));
+        }}
+      >
         <button
           type="submit"
           className="flex w-full items-center justify-center gap-2.5 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-text transition-transform active:scale-[0.98]"
