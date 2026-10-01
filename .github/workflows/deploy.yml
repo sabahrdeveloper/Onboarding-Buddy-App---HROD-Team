@@ -1,0 +1,87 @@
+name: Deploy to Openship (arl-243)
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Tarball source
+        run: |
+          tar \
+            --exclude='._*' --exclude='**/._*' --exclude='.DS_Store' --exclude='**/.DS_Store' \
+            --exclude='./.git' --exclude='./node_modules' --exclude='**/node_modules' \
+            --exclude='./.next' --exclude='./mcp-dist' --exclude='./reference' --exclude='./docs' \
+            --exclude='./.claude' --exclude='./vercel_deploy_output*.txt' --exclude='*.zip' \
+            --exclude='./.env*' \
+            -czf /tmp/ob-src.tar.gz .
+          tar -tzf /tmp/ob-src.tar.gz | grep -q '^./Dockerfile$'
+          tar -tzf /tmp/ob-src.tar.gz | grep -q '^./lib/supabase/admin.ts$'
+
+      - name: Create upload session
+        id: session
+        run: |
+          RESP=$(curl -s -X POST "https://deploy.ibos.io/api/proxy/api/projects/folder/session" \
+            -H "Authorization: Bearer ${{ secrets.OPENSHIP_PAT }}" \
+            -H "Content-Type: application/json" \
+            -d '{"name":"onboarding-buddy-srv","stack":"nodejs"}')
+          echo "$RESP" > /tmp/session.json
+          echo "session_id=$(echo "$RESP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["sessionId"])')" >> "$GITHUB_OUTPUT"
+          echo "upload_url=$(echo "$RESP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["upload"]["absoluteUrl"])')" >> "$GITHUB_OUTPUT"
+          echo "ticket=$(echo "$RESP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["upload"]["headers"]["x-upload-ticket"])')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload tarball
+        run: |
+          curl -s -X POST "${{ steps.session.outputs.upload_url }}" \
+            -H "Authorization: Bearer ${{ secrets.OPENSHIP_PAT }}" \
+            -H "x-upload-ticket: ${{ steps.session.outputs.ticket }}" \
+            -H "Content-Type: application/gzip" \
+            --data-binary @/tmp/ob-src.tar.gz
+
+      - name: Scan folder
+        run: |
+          curl -s -X POST "https://deploy.ibos.io/api/proxy/api/projects/folder/scan/${{ steps.session.outputs.session_id }}" \
+            -H "Authorization: Bearer ${{ secrets.OPENSHIP_PAT }}" \
+            -H "Content-Type: application/json" -d '{}'
+
+      - name: Deploy (build on arl-243)
+        id: deploy
+        run: |
+          RESP=$(curl -s -X POST "https://deploy.ibos.io/api/proxy/api/mcp" \
+            -H "Authorization: Bearer ${{ secrets.OPENSHIP_PAT }}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"post_deployments_build_access","arguments":{"body":{"projectId":"proj_Jmz3g9h2D124cqFr","uploadSessionId":"${{ steps.session.outputs.session_id }}","buildStrategy":"server","deployTarget":"server","serverId":"7b24d18f-2219-4be3-a9c4-823aea401859","runtimeMode":"docker","environment":"production","publicEndpoints":[{"customDomain":"onboardingbuddy.ibos.agency","domainType":"custom","port":"3000"}]}}}}')
+          echo "$RESP" > /tmp/deploy.json
+          DEP_ID=$(echo "$RESP" | python3 -c 'import json,sys; print(json.loads(json.load(sys.stdin)["result"]["content"][0]["text"])["deployment_id"])')
+          echo "deployment_id=$DEP_ID" >> "$GITHUB_OUTPUT"
+          echo "Deployment started: $DEP_ID"
+
+      - name: Wait until ready
+        run: |
+          for i in $(seq 1 60); do
+            STATUS=$(curl -s "https://deploy.ibos.io/api/proxy/api/deployments/${{ steps.deploy.outputs.deployment_id }}" \
+              -H "Authorization: Bearer ${{ secrets.OPENSHIP_PAT }}")
+            S=$(echo "$STATUS" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; print(d["status"])')
+            LISTEN=$(echo "$STATUS" | python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]; print(json.dumps(d.get("meta",{}).get("portCheck")))')
+            echo "status=$S $LISTEN"
+            if [ "$S" = "ready" ] && echo "$LISTEN" | grep -q '"listening": true'; then
+              echo "Deployment ready"
+              exit 0
+            fi
+            if [ "$S" = "failed" ]; then
+              echo "Deployment failed"; exit 1
+            fi
+            sleep 10
+          done
+          echo "Timed out"; exit 1
+
+      - name: Verify live site
+        run: |
+          sleep 5
+          curl -sf "https://onboardingbuddy.ibos.agency/health/ready" | grep -q '"ok"' && echo "LIVE: https://onboardingbuddy.ibos.agency"
