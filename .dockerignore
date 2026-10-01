@@ -1,0 +1,10 @@
+.git
+node_modules
+.next
+mcp-dist
+reference
+docs
+.claude
+vercel_deploy_output*.txt
+*.zip
+.env*

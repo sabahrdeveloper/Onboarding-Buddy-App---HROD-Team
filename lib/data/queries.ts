@@ -44,7 +44,16 @@ export const getSubordinates = cache(async () => {
 
 export const getOnboardingVariants = cache(async () => {
   const supabase = await createClient();
-  return supabase.from("onboarding_variants").select("*");
+  let res = await supabase.from("onboarding_variants").select("*");
+  // One quick retry: a transient network/Rest failure here used to make
+  // resolveVariantForSbu return undefined and crash every layout/page that
+  // reads `.isDefault`. If the second attempt also fails, callers fall back
+  // to SAFE_DEFAULT_VARIANT instead of rendering blank.
+  if (!res.data?.length) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    res = await supabase.from("onboarding_variants").select("*");
+  }
+  return res;
 });
 
 // The employee's own SBU-resolved variant, ignoring any onboarding-track

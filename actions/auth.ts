@@ -100,7 +100,15 @@ export async function loginOrCreateProfile(_prevState: LoginState, formData: For
 
   // Fast path: an existing account with the correct password never touches
   // PeopleDesk — logins stay quick and don't depend on that API's uptime.
-  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: passwordRaw });
+  // Network blips can make auth-js THROW (AuthRetryableFetchError) instead of
+  // returning an error — catch it so a flaky connection shows a friendly
+  // message instead of a blank 500.
+  let signInError: { message: string } | null = null;
+  try {
+    ({ error: signInError } = await supabase.auth.signInWithPassword({ email, password: passwordRaw }));
+  } catch (err) {
+    signInError = { message: err instanceof Error ? err.message : "network error" };
+  }
 
   if (signInError) {
     // Could be (a) a brand-new enroll number (first-time setup) or (b) an
@@ -117,7 +125,12 @@ export async function loginOrCreateProfile(_prevState: LoginState, formData: For
       return { error: "এই এনরোল নম্বর PeopleDesk-এ নিবন্ধিত নেই।" };
     }
 
-    const { error: signUpError } = await supabase.auth.signUp({ email, password: passwordRaw });
+    let signUpError: { message: string } | null = null;
+    try {
+      ({ error: signUpError } = await supabase.auth.signUp({ email, password: passwordRaw }));
+    } catch (err) {
+      signUpError = { message: err instanceof Error ? err.message : "network error" };
+    }
 
     if (signUpError) {
       if (signUpError.message.toLowerCase().includes("already registered")) {
@@ -128,8 +141,13 @@ export async function loginOrCreateProfile(_prevState: LoginState, formData: For
 
     // New account: provision profile, employee record (from PeopleDesk, not
     // typed input), and the 50-task checklist.
-    const { data: userData } = await supabase.auth.getUser();
-    const userId = userData.user?.id;
+    let userId: string | undefined;
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      userId = userData.user?.id;
+    } catch {
+      userId = undefined;
+    }
     if (!userId) {
       return { error: "লগইন করা যায়নি। একটু পর আবার চেষ্টা করুন।" };
     }
@@ -163,7 +181,12 @@ export async function loginOrCreateProfile(_prevState: LoginState, formData: For
     // also run the normal/default onboarding alongside it (see
     // /select-onboarding) and need status rows for both task sets — a
     // default-variant employee only ever gets the one.
-    await syncTaskProvisioning(supabase, enrollNumber, peopleDeskEmployee.sbu);
+    try {
+      await syncTaskProvisioning(supabase, enrollNumber, peopleDeskEmployee.sbu);
+    } catch {
+      // Provisioning is self-healing on the next login; a failed sync here
+      // must not block the login itself.
+    }
   } else {
     // Existing account, fast path: re-sync in case their sbu was reassigned
     // (e.g. moved to a different variant) since their last provisioning —
@@ -173,7 +196,11 @@ export async function loginOrCreateProfile(_prevState: LoginState, formData: For
       .select("sbu")
       .eq("enroll_number", enrollNumber)
       .maybeSingle();
-    await syncTaskProvisioning(supabase, enrollNumber, employee?.sbu ?? null);
+    try {
+      await syncTaskProvisioning(supabase, enrollNumber, employee?.sbu ?? null);
+    } catch {
+      // Same as above — never let a sync failure block login.
+    }
   }
 
   redirect("/home");

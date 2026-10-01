@@ -1,13 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mascot } from "@/components/mascot/Mascot";
 import { Icon } from "@/components/icons/Icon";
-import { loginOrCreateProfile, signInWithGoogle, type LoginState } from "@/actions/auth";
-
-const initialState: LoginState = {};
 
 const GOOGLE_ERRORS: Record<string, string> = {
   google_not_linked: "এই Google অ্যাকাউন্টটি কোনো এনরোল নম্বরের সাথে যুক্ত নেই। প্রথমে এনরোল নম্বর ও পাসওয়ার্ড দিয়ে লগইন করুন, তারপর Profile থেকে Google যুক্ত করুন।",
@@ -17,8 +14,49 @@ const GOOGLE_ERRORS: Record<string, string> = {
 };
 
 export function LoginForm() {
-  const [state, formAction, pending] = useActionState(loginOrCreateProfile, initialState);
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   const googleError = GOOGLE_ERRORS[useSearchParams().get("error") ?? ""];
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+    try {
+      const form = event.currentTarget;
+      const formData = new FormData(form);
+      const remember = formData.get("remember") === "on";
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enrollNumber: String(formData.get("enrollNumber") ?? ""),
+          password: String(formData.get("password") ?? ""),
+          remember,
+        }),
+      });
+      const data = await res.json().catch(() => ({ ok: false, error: "লগইন করা যায়নি। একটু পর আবার চেষ্টা করুন।" }));
+      if (!res.ok || !data.ok || !data.session) {
+        setError(data.error ?? "লগইন করা যায়নি। একটু পর আবার চেষ্টা করুন।");
+        return;
+      }
+      const cookieValue =
+        "base64-" +
+        btoa(JSON.stringify(data.session))
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+      const cookieOptions = `path=/; SameSite=Lax; Secure${remember ? `; max-age=${60 * 60 * 24 * 30}` : ""}`;
+      document.cookie = `sb-wxazzkcwevsqqifglysc-auth-token=${cookieValue}; ${cookieOptions}`;
+      router.push("/home");
+      router.refresh();
+    } catch {
+      setError("লগইন করা যায়নি। একটু পর আবার চেষ্টা করুন।");
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
     <div className="flex h-full flex-col justify-center px-6 py-10">
@@ -38,7 +76,7 @@ export function LoginForm() {
         </div>
       )}
 
-      <form action={formAction} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label htmlFor="enrollNumber" className="mb-1.5 block font-en text-[13px] font-semibold text-text">
             Enroll Number
@@ -85,8 +123,8 @@ export function LoginForm() {
           Keep me signed in
         </label>
 
-        {state.error && (
-          <div className="rounded-input bg-err-bg px-4 py-3 text-[13px] font-medium text-err-tx">{state.error}</div>
+        {error && (
+          <div className="rounded-input bg-err-bg px-4 py-3 text-[13px] font-medium text-err-tx">{error}</div>
         )}
 
         <button
@@ -112,7 +150,7 @@ export function LoginForm() {
         <div className="h-px flex-1 bg-line" />
       </div>
 
-      <form action={signInWithGoogle}>
+      <form action="/api/auth/google" method="get">
         <button
           type="submit"
           className="flex w-full items-center justify-center gap-2.5 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-text transition-transform active:scale-[0.98]"
