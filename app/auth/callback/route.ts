@@ -8,7 +8,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // `profiles` row already exists for this auth user id — a brand-new,
 // never-linked Google identity has no enroll number to attach to.
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  // Never derive the origin from request.url's own host — behind OpenShip's
+  // reverse proxy that's the container's internal address (localhost:3000),
+  // not the public domain, so every redirect below sent the browser to a
+  // dead localhost URL instead of back to the real site. Same class of bug
+  // already fixed in actions/auth.ts's siteOrigin().
+  const origin = `${request.headers.get("x-forwarded-proto") ?? "https"}://${request.headers.get("x-forwarded-host") ?? request.headers.get("host")}`;
   const code = searchParams.get("code");
   const linked = searchParams.get("linked") === "1";
 
