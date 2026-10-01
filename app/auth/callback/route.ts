@@ -20,32 +20,53 @@ export async function GET(request: Request) {
 
   if (!code) return NextResponse.redirect(`${origin}/login?error=google_no_code`);
 
-  const supabase = await createClient();
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-  if (exchangeError) {
-    // TEMPORARY: surfacing the real reason while diagnosing a production
-    // failure here — revert to the generic error once resolved, this isn't
-    // meant to stay (exposes Supabase's internal error message in the URL).
-    return NextResponse.redirect(`${origin}/login?error=google_exchange_failed&detail=${encodeURIComponent(exchangeError.message)}`);
+  // Everything below can throw (network blips to Supabase, a missing
+  // SUPABASE_SERVICE_ROLE_KEY making createAdminClient() throw
+  // synchronously, etc.) — on a long-running Node server (unlike Vercel's
+  // per-request isolation) an unhandled throw here can take the whole
+  // process down for every user, not just fail this one request. Every
+  // path must end in a redirect, never propagate.
+  try {
+    const supabase = await createClient();
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    if (exchangeError) {
+      // TEMPORARY: surfacing the real reason while diagnosing a production
+      // failure here — revert to the generic error once resolved, this isn't
+      // meant to stay (exposes Supabase's internal error message in the URL).
+      return NextResponse.redirect(`${origin}/login?error=google_exchange_failed&detail=${encodeURIComponent(exchangeError.message)}`);
+    }
+
+    if (linked) return NextResponse.redirect(`${origin}/profile`);
+
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id;
+    const { data: profile } = userId
+      ? await supabase.from("profiles").select("id").eq("id", userId).maybeSingle()
+      : { data: null };
+
+    if (!profile) {
+      // A fresh Google sign-in with no matching enroll number has no valid use —
+      // leaving the auth.users row behind would permanently claim this Google
+      // identity, so a later real `linkGoogleAccount` attempt would fail with
+      // identity_already_exists even though nothing actually uses that account.
+      await supabase.auth.signOut();
+      if (userId) {
+        try {
+          await createAdminClient().auth.admin.deleteUser(userId);
+        } catch {
+          // Best-effort cleanup — leaving the orphaned auth.users row behind
+          // is a minor annoyance (a later linkGoogleAccount retry would hit
+          // identity_already_exists), never worth failing this request over.
+        }
+      }
+      return NextResponse.redirect(`${origin}/login?error=google_not_linked`);
+    }
+
+    return NextResponse.redirect(`${origin}/home`);
+  } catch (err) {
+    // TEMPORARY: same reasoning as the exchange error above — surfacing the
+    // message while this is still actively being diagnosed in production.
+    const detail = err instanceof Error ? err.message : "unknown error";
+    return NextResponse.redirect(`${origin}/login?error=google_callback_crashed&detail=${encodeURIComponent(detail)}`);
   }
-
-  if (linked) return NextResponse.redirect(`${origin}/profile`);
-
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id;
-  const { data: profile } = userId
-    ? await supabase.from("profiles").select("id").eq("id", userId).maybeSingle()
-    : { data: null };
-
-  if (!profile) {
-    // A fresh Google sign-in with no matching enroll number has no valid use —
-    // leaving the auth.users row behind would permanently claim this Google
-    // identity, so a later real `linkGoogleAccount` attempt would fail with
-    // identity_already_exists even though nothing actually uses that account.
-    await supabase.auth.signOut();
-    if (userId) await createAdminClient().auth.admin.deleteUser(userId);
-    return NextResponse.redirect(`${origin}/login?error=google_not_linked`);
-  }
-
-  return NextResponse.redirect(`${origin}/home`);
 }
