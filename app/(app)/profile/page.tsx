@@ -12,6 +12,7 @@ import {
   getTasks,
 } from "@/lib/data/queries";
 import { signOut } from "@/actions/sign-out";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 import { linkGoogleAccount } from "@/actions/auth";
 import { currentPhase, progressPercent } from "@/lib/business-rules";
 import { PHASE_META, PHASE_META_BN, GROWTH_PHASE_META, GROWTH_PHASE_META_BN, type PhaseKey } from "@/lib/types";
@@ -241,6 +242,8 @@ export default async function ProfilePage() {
           </div>
         ))}
       </div>
+
+      <InstallAppButton bn={isBn} />
 
       {!googleLinked && (
         <form action={linkGoogleAccount} className="mt-5">
