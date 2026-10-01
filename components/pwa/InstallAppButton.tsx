@@ -8,11 +8,28 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+function getManualInstructions(isBn: boolean): string {
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isSafari = isIOS && /Safari/.test(ua) && !/CriOS|FxiOS/.test(ua);
+
+  if (isSafari) {
+    return isBn
+      ? "নিচের Share আইকনে ট্যাপ করুন, তারপর \"Add to Home Screen\" বেছে নিন।"
+      : 'Tap the Share icon below, then choose "Add to Home Screen".';
+  }
+  return isBn
+    ? "ব্রাউজারের মেনু (⋮) খুলুন এবং \"Install app\" বা \"Add to Home Screen\" বেছে নিন।"
+    : 'Open your browser\'s menu (⋮) and choose "Install app" or "Add to Home Screen".';
+}
+
 export function InstallAppButton({ bn: isBn }: { bn?: boolean }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [alreadyInstalled, setAlreadyInstalled] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    if (window.matchMedia("(display-mode: standalone)").matches) setAlreadyInstalled(true);
 
     function onBeforeInstallPrompt(e: Event) {
       e.preventDefault();
@@ -20,6 +37,7 @@ export function InstallAppButton({ bn: isBn }: { bn?: boolean }) {
     }
     function onInstalled() {
       setDeferredPrompt(null);
+      setAlreadyInstalled(true);
     }
 
     window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
@@ -30,27 +48,37 @@ export function InstallAppButton({ bn: isBn }: { bn?: boolean }) {
     };
   }, []);
 
-  // No button when there's nothing to trigger — already installed, or the
-  // browser never fired the prompt event (iOS Safari has no
-  // beforeinstallprompt at all; that platform only supports the manual
-  // Share → Add to Home Screen flow, which this button can't invoke).
-  if (!deferredPrompt) return null;
+  if (alreadyInstalled) return null;
 
-  async function handleInstall() {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
+  async function handleClick() {
+    if (deferredPrompt) {
+      await deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+      return;
+    }
+    // No native prompt available (iOS Safari, Firefox, already dismissed,
+    // or the browser just hasn't offered it yet) — show manual steps
+    // instead of doing nothing, since this button should always do
+    // something when tapped.
+    setShowInstructions((v) => !v);
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleInstall}
-      className="mt-5 flex w-full items-center justify-center gap-2.5 rounded-button bg-green px-4 py-3.5 font-en text-sm font-bold text-white transition-transform active:scale-[0.98]"
-    >
-      <Icon name="monitor" size={16} />
-      {isBn ? "অ্যাপ হিসেবে ইনস্টল করুন" : "Install as App"}
-    </button>
+    <div className="mt-5">
+      <button
+        type="button"
+        onClick={handleClick}
+        className="flex w-full items-center justify-center gap-2.5 rounded-button bg-green px-4 py-3.5 font-en text-sm font-bold text-white transition-transform active:scale-[0.98]"
+      >
+        <Icon name="monitor" size={16} />
+        {isBn ? "অ্যাপ হিসেবে ইনস্টল করুন" : "Install as App"}
+      </button>
+      {showInstructions && !deferredPrompt && (
+        <p className="mt-2.5 rounded-xl border border-line bg-card p-3.5 text-[12.5px] font-medium leading-snug text-muted">
+          {getManualInstructions(Boolean(isBn))}
+        </p>
+      )}
+    </div>
   );
 }
