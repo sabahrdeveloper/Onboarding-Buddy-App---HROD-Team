@@ -22,7 +22,12 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
   const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-  if (exchangeError) return NextResponse.redirect(`${origin}/login?error=google_exchange_failed`);
+  if (exchangeError) {
+    // TEMPORARY: surfacing the real reason while diagnosing a production
+    // failure here — revert to the generic error once resolved, this isn't
+    // meant to stay (exposes Supabase's internal error message in the URL).
+    return NextResponse.redirect(`${origin}/login?error=google_exchange_failed&detail=${encodeURIComponent(exchangeError.message)}`);
+  }
 
   if (linked) return NextResponse.redirect(`${origin}/profile`);
 
