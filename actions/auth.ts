@@ -43,8 +43,12 @@ async function syncTaskProvisioning(
 }
 
 async function siteOrigin() {
+  // Always derive from the actual request, never an env var override — this
+  // app has moved hosts more than once (Vercel, then ibos), and a stale
+  // NEXT_PUBLIC_SITE_URL sent Google OAuth back to a now-paused deployment
+  // instead of wherever the app is actually being served from.
   const h = await headers();
-  return process.env.NEXT_PUBLIC_SITE_URL ?? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
+  return `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`;
 }
 
 /**
