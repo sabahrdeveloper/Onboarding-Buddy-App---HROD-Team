@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Mascot } from "@/components/mascot/Mascot";
 
 const VERIFIER_KEY = "ob_google_pkce_verifier";
 
-export default function CallbackPage() {
+function CallbackInner() {
   const router = useRouter();
   const params = useSearchParams();
   const ran = useRef(false);
@@ -57,5 +57,22 @@ export default function CallbackPage() {
       </div>
       <p className="font-bn text-sm font-semibold text-muted">সাইন ইন সম্পন্ন হচ্ছে…</p>
     </div>
+  );
+}
+
+export default function CallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-dvh flex-col items-center justify-center gap-6 bg-bg px-6">
+          <div className="h-24 w-24 animate-floaty">
+            <Mascot variant="color" mood="happy" />
+          </div>
+          <p className="font-bn text-sm font-semibold text-muted">সাইন ইন সম্পন্ন হচ্ছে…</p>
+        </div>
+      }
+    >
+      <CallbackInner />
+    </Suspense>
   );
 }
